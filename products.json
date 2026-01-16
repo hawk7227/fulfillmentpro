@@ -1,0 +1,14 @@
+{
+  "products": [
+    {
+      "sku": "B013OKRGWW",
+      "asin": "B013OKRGWW",
+      "amazon_url": "https://www.amazon.com/dp/B013OKRGWW",
+      "product_name": "Example Product 1",
+      "buy_price": 15.99,
+      "sell_price": 29.99,
+      "category": "Electronics",
+      "is_active": true
+    }
+  ]
+}
