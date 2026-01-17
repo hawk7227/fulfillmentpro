@@ -24,7 +24,7 @@ export async function requestNotificationPermission() {
       console.log('✅ Notification permission granted');
       
       const token = await getToken(messaging, {
-        vapidKey: 'BPpg6Bgxk2wvRzgfC_JPHbQApUwNBOZ9pGfNnbzXqJ1yNrGnOp-eC37_cHrTsyX1BfKUiTaoixkctNjrOmarKW8'
+        vapidKey: 'BPpg6Bgxk2wvRzgfC_JPHbQApUwNBOZ9pGfNnbzXqJ1yNrGnOpeC37_cHrTsyX1BfKUiTaoixkctNjrOmarKW8'
       });
       
       if (token) {
@@ -119,3 +119,4 @@ function showNotificationDenied() {
 
 
 export { messaging };
+
