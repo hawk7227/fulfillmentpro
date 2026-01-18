@@ -1,13 +1,53 @@
 {
   "products": [
     {
-      "sku": "B013OKRGWW",
-      "asin": "B013OKRGWW",
-      "amazon_url": "https://www.amazon.com/dp/B013OKRGWW",
-      "product_name": "Example Product 1",
-      "buy_price": 15.99,
-      "sell_price": 29.99,
-      "category": "Electronics",
+      "sku": "B0DFMWGXYL",
+      "asin": "B0DFMWGXYL",
+      "amazon_url": "https://www.amazon.com/dp/B0DFMWGXYL",
+      "product_name": "E.L.F. Glow Reviver Lip Oil",
+      "buy_price": 8.00,
+      "sell_price": 15.00,
+      "category": "Beauty",
+      "is_active": true
+    },
+    {
+      "sku": "B0DZ296DZB",
+      "asin": "B0DZ296DZB",
+      "amazon_url": "https://www.amazon.com/dp/B0DZ296DZB",
+      "product_name": "MAREE Pimple Patches",
+      "buy_price": 10.00,
+      "sell_price": 18.00,
+      "category": "Beauty",
+      "is_active": true
+    },
+    {
+      "sku": "CASE-LEATHER-PREM",
+      "asin": "CASE-LEATHER-PREM",
+      "amazon_url": "https://www.amazon.com/dp/CASE-LEATHER-PREM",
+      "product_name": "Premium Leather Case",
+      "buy_price": 25.00,
+      "sell_price": 45.00,
+      "category": "Accessories",
+      "is_active": true
+    },
+    {
+      "sku": "LENS-PROTECT-2YR",
+      "asin": "LENS-PROTECT-2YR",
+      "amazon_url": "https://www.amazon.com/dp/LENS-PROTECT-2YR",
+      "product_name": "Lens Protection Plan (2 Year)",
+      "buy_price": 15.00,
+      "sell_price": 30.00,
+      "category": "Services",
+      "is_active": true
+    },
+    {
+      "sku": "B0DM25XRJP",
+      "asin": "B0DM25XRJP",
+      "amazon_url": "https://www.amazon.com/dp/B0DM25XRJP",
+      "product_name": "Ecotools XL Body Buffer",
+      "buy_price": 5.00,
+      "sell_price": 12.00,
+      "category": "Beauty",
       "is_active": true
     }
   ]
