@@ -3,7 +3,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCdeG8AaIZD9CP1P1ul8FKHjTpv4Uwjzjg",
+  apiKey: "AIzaSyCdeG8AaIZD9CP1Piul8FKHjTpv4Uwjzjg",
   authDomain: "fulfillmentpro-b920a.firebaseapp.com",
   projectId: "fulfillmentpro-b920a",
   storageBucket: "fulfillmentpro-b920a.firebasestorage.app",
@@ -24,7 +24,7 @@ export async function requestNotificationPermission() {
       console.log('✅ Notification permission granted');
       
       const token = await getToken(messaging, {
-        vapidKey: 'BPpg6Bgxk2wvRzgfC_JPHbQApUwNBOZ9pGfNnbzXqJ1yNrGnOpeC37_cHrTsyX1BfKUiTaoixkctNjrOmarKW8'
+        vapidKey: 'BPpg6Bgxk2wvRzgfC_JPHbQApUwNBOZ9pGfNnbzXqJ1yNrGnOp-eC37_cHrTsyX1BfKUiTaoixkctNjrOmarKW8'
       });
       
       if (token) {
@@ -119,4 +119,5 @@ function showNotificationDenied() {
 
 
 export { messaging };
+
 
