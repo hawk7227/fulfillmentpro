@@ -218,17 +218,49 @@ def send_push_notification(title, body, data=None):
         return False
     
     try:
-        message = messaging.MulticastMessage(
-            notification=messaging.Notification(title=title, body=body),
-            data=data or {},
-            tokens=tokens
-        )
-        response = messaging.send_multicast(message)
-        print(f"✅ Push sent to {response.success_count}/{len(tokens)} devices")
-        return True
+        # Convert data values to strings (FCM requirement)
+        if data:
+            data = {k: str(v) for k, v in data.items()}
+        else:
+            data = {}
+        
+        # Send to each token individually using send_each
+        messages = [
+            messaging.Message(
+                notification=messaging.Notification(title=title, body=body),
+                data=data,
+                token=token
+            )
+            for token in tokens
+        ]
+        
+        # Send batch
+        response = messaging.send_each(messages)
+        success_count = sum(1 for r in response.responses if r.success)
+        
+        # Log failures and clean up invalid tokens
+        for idx, resp in enumerate(response.responses):
+            if not resp.success:
+                error = resp.exception
+                print(f"⚠️ Failed to send to token {idx}: {error}")
+                
+                # Remove invalid tokens from database
+                if 'not-found' in str(error).lower() or 'invalid' in str(error).lower():
+                    conn = get_db()
+                    c = conn.cursor()
+                    c.execute('DELETE FROM push_tokens WHERE token = ?', (tokens[idx],))
+                    conn.commit()
+                    conn.close()
+                    print(f"🗑️ Removed invalid token")
+        
+        print(f"✅ Push sent to {success_count}/{len(tokens)} devices")
+        return success_count > 0
     except Exception as e:
         print(f"❌ Push error: {e}")
+        import traceback
+        traceback.print_exc()
         return False
+
 
 def send_notification(title, body, email_body=None, data=None):
     """Send notification via push and email (fallback)"""
