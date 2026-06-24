@@ -295,7 +295,7 @@ def check_worker_status():
         if last_notif:
             last_notif_time = datetime.fromisoformat(last_notif)
             # Only notify once per hour
-            if (datetime.utcnow() - last_notif_time).total_seconds() < 3600:
+            if (datetime.utcnow() - last_notif_time).total_seconds() < 60:
                 should_notify = False
         
         if should_notify:
