@@ -8,6 +8,8 @@ import hashlib
 import json
 import sqlite3
 import smtplib
+import threading
+import time
 from datetime import datetime, timedelta
 from functools import wraps
 from email.mime.text import MIMEText
@@ -320,6 +322,14 @@ def check_worker_status():
     conn.close()
     return is_online
 
+def worker_monitor_loop():
+    """Periodically check worker status and send notifications if offline."""
+    while True:
+        try:
+            check_worker_status()
+        except Exception as e:
+            print(f"⚠️ Worker monitor error: {e}")
+        time.sleep(60)  # Check every 60 seconds
 # ==================== API ENDPOINTS ====================
 
 @app.route('/health', methods=['GET'])
@@ -783,6 +793,12 @@ def index():
 @app.route('/<path:path>')
 def static_files(path):
     return send_from_directory('static', path)
+# Start the background monitor (only in the main worker process)
+if not os.environ.get('WORKER_MONITOR_STARTED'):
+    os.environ['WORKER_MONITOR_STARTED'] = '1'
+    thread = threading.Thread(target=worker_monitor_loop, daemon=True)
+    thread.start()
+    print("✅ Worker monitor thread started")
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
