@@ -3,13 +3,13 @@ FulfillmentPro Backend - Production Ready
 Complete implementation with all requirements
 """
 import os
+import time
 import hmac
 import hashlib
 import json
 import sqlite3
 import smtplib
 import threading
-import time
 from datetime import datetime, timedelta
 from functools import wraps
 from email.mime.text import MIMEText
@@ -265,14 +265,18 @@ def send_push_notification(title, body, data=None):
 
 
 def send_notification(title, body, email_body=None, data=None):
-    """Send notification via push and email (fallback)"""
+    """
+    Send notification via push and email (fallback).
+    Returns True if at least one method succeeded.
+    """
     push_sent = send_push_notification(title, body, data)
+    email_sent = False
     
     # Send email as fallback or always (based on config)
     if EMAIL_ENABLED:
-        send_email_notification(title, email_body or body)
+        email_sent = send_email_notification(title, email_body or body)
     
-    return push_sent
+    return push_sent or email_sent
 
 # ==================== WORKER MONITORING ====================
 def check_worker_status():
@@ -296,23 +300,26 @@ def check_worker_status():
         
         if last_notif:
             last_notif_time = datetime.fromisoformat(last_notif)
-            # Only notify once per hour
-            if (datetime.utcnow() - last_notif_time).total_seconds() < 60:
+            # Only notify once per hour (adjust as needed)
+            if (datetime.utcnow() - last_notif_time).total_seconds() < 3600:
                 should_notify = False
         
         if should_notify:
-            send_notification(
+            # Attempt to send notification
+            success = send_notification(
                 '🔴 Worker Offline',
                 'Automation worker is not responding. Tasks are paused.',
                 f'Worker last heartbeat: {worker["last_heartbeat_at"]}\n\nPlease check the Windows worker service.',
                 {'type': 'worker_offline'}
             )
             
-            c.execute('''UPDATE worker_status 
-                         SET last_offline_notification_at = ?
-                         WHERE id = 1''',
-                      (datetime.utcnow().isoformat(),))
-            conn.commit()
+            # Only update last notification time if at least one channel succeeded
+            if success:
+                c.execute('''UPDATE worker_status 
+                             SET last_offline_notification_at = ?
+                             WHERE id = 1''',
+                          (datetime.utcnow().isoformat(),))
+                conn.commit()
     
     # Update online status
     if worker['is_online'] != is_online:
@@ -322,14 +329,16 @@ def check_worker_status():
     conn.close()
     return is_online
 
-def worker_monitor_loop():
-    """Periodically check worker status and send notifications if offline."""
-    while True:
-        try:
-            check_worker_status()
-        except Exception as e:
-            print(f"⚠️ Worker monitor error: {e}")
-        time.sleep(60)  # Check every 60 seconds
+def background_worker_monitor():
+    """Continuously check worker status in a background thread."""
+    with app.app_context():
+        while True:
+            try:
+                check_worker_status()
+            except Exception as e:
+                print(f"⚠️ Background monitor error: {e}")
+            time.sleep(30)  # check every 30 seconds
+
 # ==================== API ENDPOINTS ====================
 
 @app.route('/health', methods=['GET'])
@@ -505,7 +514,6 @@ def shopify_webhook():
         return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
-# In backend.py, update the get_next_task endpoint:
 
 @app.route('/api/queue/next', methods=['GET'])
 @require_worker_auth
@@ -793,12 +801,11 @@ def index():
 @app.route('/<path:path>')
 def static_files(path):
     return send_from_directory('static', path)
-# Start the background monitor (only in the main worker process)
-if not os.environ.get('WORKER_MONITOR_STARTED'):
-    os.environ['WORKER_MONITOR_STARTED'] = '1'
-    thread = threading.Thread(target=worker_monitor_loop, daemon=True)
-    thread.start()
-    print("✅ Worker monitor thread started")
+
+# ==================== BACKGROUND MONITOR THREAD ====================
+background_thread = threading.Thread(target=background_worker_monitor, daemon=True)
+background_thread.start()
+print("✅ Background worker monitor started")
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
