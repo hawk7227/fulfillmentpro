@@ -3,11 +3,13 @@ FulfillmentPro Backend - Production Ready
 Complete implementation with all requirements
 """
 import os
+import time
 import hmac
 import hashlib
 import json
 import sqlite3
 import smtplib
+import threading
 from datetime import datetime, timedelta
 from functools import wraps
 from email.mime.text import MIMEText
@@ -218,27 +220,63 @@ def send_push_notification(title, body, data=None):
         return False
     
     try:
-        message = messaging.MulticastMessage(
-            notification=messaging.Notification(title=title, body=body),
-            data=data or {},
-            tokens=tokens
-        )
-        response = messaging.send_multicast(message)
-        print(f"✅ Push sent to {response.success_count}/{len(tokens)} devices")
-        return True
+        # Convert data values to strings (FCM requirement)
+        if data:
+            data = {k: str(v) for k, v in data.items()}
+        else:
+            data = {}
+        
+        # Send to each token individually using send_each
+        messages = [
+            messaging.Message(
+                notification=messaging.Notification(title=title, body=body),
+                data=data,
+                token=token
+            )
+            for token in tokens
+        ]
+        
+        # Send batch
+        response = messaging.send_each(messages)
+        success_count = sum(1 for r in response.responses if r.success)
+        
+        # Log failures and clean up invalid tokens
+        for idx, resp in enumerate(response.responses):
+            if not resp.success:
+                error = resp.exception
+                print(f"⚠️ Failed to send to token {idx}: {error}")
+                
+                # Remove invalid tokens from database
+                if 'not-found' in str(error).lower() or 'invalid' in str(error).lower():
+                    conn = get_db()
+                    c = conn.cursor()
+                    c.execute('DELETE FROM push_tokens WHERE token = ?', (tokens[idx],))
+                    conn.commit()
+                    conn.close()
+                    print(f"🗑️ Removed invalid token")
+        
+        print(f"✅ Push sent to {success_count}/{len(tokens)} devices")
+        return success_count > 0
     except Exception as e:
         print(f"❌ Push error: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
+
 def send_notification(title, body, email_body=None, data=None):
-    """Send notification via push and email (fallback)"""
+    """
+    Send notification via push and email (fallback).
+    Returns True if at least one method succeeded.
+    """
     push_sent = send_push_notification(title, body, data)
+    email_sent = False
     
     # Send email as fallback or always (based on config)
     if EMAIL_ENABLED:
-        send_email_notification(title, email_body or body)
+        email_sent = send_email_notification(title, email_body or body)
     
-    return push_sent
+    return push_sent or email_sent
 
 # ==================== WORKER MONITORING ====================
 def check_worker_status():
@@ -262,23 +300,26 @@ def check_worker_status():
         
         if last_notif:
             last_notif_time = datetime.fromisoformat(last_notif)
-            # Only notify once per hour
+            # Only notify once per hour (adjust as needed)
             if (datetime.utcnow() - last_notif_time).total_seconds() < 3600:
                 should_notify = False
         
         if should_notify:
-            send_notification(
+            # Attempt to send notification
+            success = send_notification(
                 '🔴 Worker Offline',
                 'Automation worker is not responding. Tasks are paused.',
                 f'Worker last heartbeat: {worker["last_heartbeat_at"]}\n\nPlease check the Windows worker service.',
                 {'type': 'worker_offline'}
             )
             
-            c.execute('''UPDATE worker_status 
-                         SET last_offline_notification_at = ?
-                         WHERE id = 1''',
-                      (datetime.utcnow().isoformat(),))
-            conn.commit()
+            # Only update last notification time if at least one channel succeeded
+            if success:
+                c.execute('''UPDATE worker_status 
+                             SET last_offline_notification_at = ?
+                             WHERE id = 1''',
+                          (datetime.utcnow().isoformat(),))
+                conn.commit()
     
     # Update online status
     if worker['is_online'] != is_online:
@@ -287,6 +328,16 @@ def check_worker_status():
     
     conn.close()
     return is_online
+
+def background_worker_monitor():
+    """Continuously check worker status in a background thread."""
+    with app.app_context():
+        while True:
+            try:
+                check_worker_status()
+            except Exception as e:
+                print(f"⚠️ Background monitor error: {e}")
+            time.sleep(30)  # check every 30 seconds
 
 # ==================== API ENDPOINTS ====================
 
@@ -471,7 +522,8 @@ def get_next_task():
     conn = get_db()
     c = conn.cursor()
     
-    c.execute('''SELECT t.*, o.shopify_order_number, o.customer_name, o.shipping_address
+    # FIX: Add o.shopify_order_id to the SELECT statement
+    c.execute('''SELECT t.*, o.shopify_order_number, o.shopify_order_id, o.customer_name, o.shipping_address
                  FROM tasks t
                  JOIN orders o ON t.order_id = o.id
                  WHERE t.state = "queued"
@@ -749,6 +801,11 @@ def index():
 @app.route('/<path:path>')
 def static_files(path):
     return send_from_directory('static', path)
+
+# ==================== BACKGROUND MONITOR THREAD ====================
+background_thread = threading.Thread(target=background_worker_monitor, daemon=True)
+background_thread.start()
+print("✅ Background worker monitor started")
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
