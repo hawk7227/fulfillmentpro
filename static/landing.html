@@ -9,386 +9,215 @@
   <title>Fulfillment Pro</title>
   <style>
     :root{
-      --bg:#070b2b;
-      --bg2:#10106f;
-      --blue:#3b82ff;
-      --cyan:#21d4fd;
-      --yellow:#ffd52a;
-      --violet:#8d48ff;
-      --pink:#ea3eb9;
-      --text:#fff;
-      --muted:#d6d9ee;
-      --line:rgba(255,255,255,.16);
-      --safe-top:env(safe-area-inset-top, 0px);
-      --safe-bottom:env(safe-area-inset-bottom, 0px);
+      --bg:#050823;
+      --bg2:#0b0f3f;
+      --panel:#071025;
+      --panel2:#0d1730;
+      --blue:#2f76ff;
+      --yellow:#ffd327;
+      --green:#31db8b;
+      --red:#ff5b68;
+      --orange:#ff9a32;
+      --text:#ffffff;
+      --muted:#dce5ff;
+      --soft:rgba(255,255,255,.14);
+      --safe-top:env(safe-area-inset-top,0px);
+      --safe-bottom:env(safe-area-inset-bottom,0px);
     }
-
     *{box-sizing:border-box}
-    html{scroll-behavior:smooth;background:var(--bg)}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,Segoe UI,Roboto,Arial,sans-serif;overflow-x:hidden}
     body{
-      margin:0;
-      color:var(--text);
-      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,Segoe UI,Roboto,Arial,sans-serif;
       background:
-        radial-gradient(circle at 88% 9%, rgba(0,145,255,.72), transparent 24%),
-        radial-gradient(circle at 34% 34%, rgba(82,42,255,.55), transparent 28%),
-        radial-gradient(circle at 76% 48%, rgba(255,0,156,.26), transparent 21%),
-        linear-gradient(180deg,#10108d 0%,#08083f 42%,#080b32 100%);
-      min-height:100vh;
-      overflow-x:hidden;
+        radial-gradient(circle at 82% 8%, rgba(68,82,255,.42), transparent 28%),
+        radial-gradient(circle at 12% 20%, rgba(24,96,255,.32), transparent 26%),
+        radial-gradient(circle at 50% 100%, rgba(52,18,111,.68), transparent 42%),
+        linear-gradient(180deg,#07112e 0%,#090b33 48%,#070621 100%);
     }
-
     a{color:inherit;text-decoration:none}
-    button{font:inherit}
-    .page{
-      width:min(100%, 430px);
-      margin:0 auto;
+    .wrap{
       min-height:100vh;
+      padding:calc(22px + var(--safe-top)) clamp(18px,4vw,48px) calc(28px + var(--safe-bottom));
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-start;
       position:relative;
-      overflow:hidden;
-      padding-bottom:calc(24px + var(--safe-bottom));
+      isolation:isolate;
     }
-
-    .glow{
-      position:absolute;
-      inset:0;
+    .wrap:before{
+      content:"";
+      position:absolute;inset:0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+      background-size:42px 42px;
+      mask-image:linear-gradient(to bottom, rgba(0,0,0,.75), transparent 82%);
+      z-index:-2;
+    }
+    .wrap:after{
+      content:"";
+      position:absolute;inset:auto -12% -24% -12%;height:48%;
+      background:radial-gradient(ellipse at center, rgba(46,93,255,.35), transparent 62%);
+      z-index:-1;
       pointer-events:none;
-      background:
-        linear-gradient(150deg,transparent 32%,rgba(255,255,255,.04) 33%,transparent 34%),
-        linear-gradient(18deg,transparent 60%,rgba(48,63,255,.45) 61%,transparent 62%);
-      mix-blend-mode:screen;
     }
-
     header{
+      width:min(100%,1120px);
+      margin:0 auto;
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
-      padding:calc(14px + var(--safe-top)) 18px 12px;
+      gap:16px;
       position:relative;
-      z-index:3;
+      z-index:5;
     }
-
-    .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px}
-    .logo{
-      width:22px;height:22px;
-      border:2px solid #7d79ff;
-      transform:rotate(30deg);
-      display:grid;place-items:center;
-      box-shadow:0 0 20px rgba(92,103,255,.65);
-    }
-    .logo:after{
-      content:"✓";
-      transform:rotate(-30deg);
-      color:#fff;
-      font-size:13px;
-      font-weight:900;
-    }
-
-    nav{display:flex;align-items:center;gap:10px;font-size:7px;font-weight:700}
-    nav a:nth-child(-n+4){display:none}
-    .login{opacity:.9}
-    .trial{
-      background:var(--yellow);
-      color:#151126;
-      font-weight:900;
-      padding:8px 10px;
-      border-radius:6px;
-      box-shadow:0 5px 18px rgba(255,213,42,.22);
-      white-space:nowrap;
-    }
-
-    main{position:relative;z-index:2}
+    .brand{display:flex;align-items:center;gap:11px;font-weight:950;letter-spacing:-.02em}
+    .logo{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#2563ff,#4b8cff);box-shadow:0 14px 36px rgba(38,98,255,.32);font-weight:950;font-size:14px}
+    .brand-text{line-height:1}
+    .brand-text strong{font-size:18px;display:block}
+    .brand-text span{font-size:9px;letter-spacing:.24em;color:#9eb6ff;font-weight:900}
+    nav{display:flex;align-items:center;gap:clamp(14px,3vw,28px);font-weight:850;font-size:14px;color:#eef4ff}
+    nav a:not(.login){display:none}
+    .login{border:1px solid rgba(255,255,255,.24);border-radius:16px;padding:12px 22px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(69,115,255,.12)}
     .hero{
-      padding:18px 20px 0;
-      position:relative;
-      min-height:470px;
-    }
-    .eyebrow{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      color:#f2d83a;
-      font-size:8px;
-      font-weight:900;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      margin-bottom:12px;
-    }
-    .eyebrow:before{
-      content:"";
-      width:5px;height:5px;border-radius:50%;
-      background:#f2d83a;
-      box-shadow:0 0 10px #f2d83a;
-    }
-    h1{
-      margin:0;
-      max-width:250px;
-      font-size:39px;
-      line-height:.98;
-      letter-spacing:-.045em;
-      font-weight:900;
-    }
-    h1 span{color:var(--yellow)}
-    .sub{
-      max-width:222px;
-      margin:14px 0 15px;
-      font-size:12px;
-      line-height:1.45;
-      color:var(--muted);
-    }
-    .actions{display:flex;gap:10px;align-items:center}
-    .btn{
-      border:0;
-      border-radius:6px;
-      padding:11px 16px;
-      font-size:11px;
-      font-weight:900;
-      cursor:pointer;
-    }
-    .btn.primary{background:var(--yellow);color:#171229}
-    .btn.secondary{
-      background:transparent;
-      color:white;
-      border:1px solid rgba(255,255,255,.42);
-    }
-    .micro{
-      margin-top:9px;
-      color:#bec2dc;
-      font-size:7px;
-      letter-spacing:.01em;
-    }
-    .dashboard{
-      position:absolute;
-      right:-42px;
-      top:115px;
-      width:245px;
-      transform:rotate(5deg);
-      filter:drop-shadow(0 30px 32px rgba(0,0,0,.45));
-      border-radius:17px;
-    }
-
-    .stats{
-      margin-top:0;
-      padding:18px 12px;
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      border-top:1px solid var(--line);
-      border-bottom:1px solid var(--line);
-      background:linear-gradient(90deg,rgba(16,123,255,.25),rgba(181,0,222,.18),rgba(255,57,127,.15));
-    }
-    .stat{text-align:center;position:relative}
-    .stat:not(:last-child):after{
-      content:"";
-      position:absolute;
-      right:0;top:12%;bottom:12%;
-      width:1px;background:rgba(255,255,255,.12);
-    }
-    .stat strong{display:block;font-size:17px;line-height:1;font-weight:900}
-    .stat span{display:block;margin-top:5px;font-size:7px;color:#d8dcf2}
-    .stat i{font-style:normal;margin-right:3px}
-
-    .section{
-      padding:34px 20px 28px;
-      border-bottom:1px solid rgba(255,255,255,.1);
-    }
-    .section h2{
-      margin:0 auto 26px;
-      max-width:320px;
+      width:min(100%,1120px);
+      margin:clamp(26px,5vw,54px) auto 0;
       text-align:center;
-      font-size:22px;
-      line-height:1.08;
-      letter-spacing:-.025em;
-    }
-
-    .features{
       display:grid;
-      grid-template-columns:repeat(5,1fr);
-      gap:8px;
-      align-items:start;
+      justify-items:center;
+      gap:20px;
     }
-    .feature{text-align:center}
-    .icon{
-      width:42px;height:42px;
-      margin:0 auto 9px;
-      border-radius:50%;
-      display:grid;place-items:center;
-      font-size:19px;
-      border:1px solid currentColor;
-      box-shadow:0 0 18px currentColor inset,0 0 18px rgba(255,255,255,.06);
-    }
-    .feature:nth-child(1){color:#ffd42a}
-    .feature:nth-child(2){color:#7acbff}
-    .feature:nth-child(3){color:#a87aff}
-    .feature:nth-child(4){color:#21d4fd}
-    .feature:nth-child(5){color:#ef55c4}
-    .feature strong{
-      display:block;
-      color:white;
-      font-size:8px;
-      line-height:1.15;
-      margin-bottom:4px;
-    }
-    .feature span{
-      display:block;
-      color:#d6daef;
-      font-size:6px;
-      line-height:1.25;
-    }
-
-    .shopify{
-      display:grid;
-      grid-template-columns:auto 1fr auto;
-      align-items:center;
-      gap:12px;
-      padding:28px 20px;
-      border-bottom:1px solid rgba(255,255,255,.1);
-    }
-    .shopify-logo{
-      font-size:38px;
-      filter:drop-shadow(0 0 12px rgba(115,220,62,.45));
-    }
-    .shopify small{display:block;color:#5bb9ff;font-size:8px;margin-bottom:3px}
-    .shopify strong{display:block;font-size:10px;line-height:1.25}
-
-    .testimonial{
-      padding:30px 24px 34px;
-      display:grid;
-      grid-template-columns:28px 1fr 78px;
-      gap:12px;
-      align-items:center;
-    }
-    .quote{
-      font-size:36px;
-      color:#4868ff;
-      line-height:1;
-      align-self:start;
-    }
-    .testimonial p{
-      margin:0 0 7px;
-      font-size:10px;
-      line-height:1.45;
-      color:#f4f5ff;
-    }
-    .author{font-size:8px;color:#c8cbe0}
-    .stars{margin-top:8px;color:var(--yellow);font-size:11px;letter-spacing:2px}
-    .avatar{
-      width:72px;height:72px;border-radius:50%;
-      overflow:hidden;
-      border:2px solid rgba(255,255,255,.8);
-      background:
-        radial-gradient(circle at 50% 35%,#f3c8a5 0 23%,transparent 24%),
-        radial-gradient(circle at 50% 36%,#23232a 0 28%,transparent 29%),
-        linear-gradient(145deg,#181b2b,#50566b);
+    .badge{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:10px 16px;background:rgba(255,255,255,.04);color:var(--yellow);font-weight:950;letter-spacing:.055em;text-transform:uppercase;font-size:13px;box-shadow:0 8px 28px rgba(0,0,0,.18)}
+    .badge:before{content:"★";font-size:13px}
+    h1{margin:0;max-width:980px;font-size:clamp(48px,8vw,112px);line-height:.94;letter-spacing:-.065em;font-weight:1000;text-wrap:balance;text-shadow:0 18px 60px rgba(0,0,0,.28)}
+    h1 span{color:var(--yellow)}
+    .subhead{margin:0;max-width:780px;color:#f1f5ff;font-size:clamp(18px,2.1vw,28px);line-height:1.25;font-weight:900;text-wrap:balance}
+    .copy{margin:-4px 0 0;max-width:760px;color:var(--muted);font-size:clamp(15px,1.6vw,20px);line-height:1.5;text-wrap:balance}
+    .actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:56px;border-radius:12px;padding:0 24px;font-weight:950;font-size:16px;border:1px solid rgba(255,255,255,.22)}
+    .btn.primary{background:var(--yellow);color:#07091f;border-color:var(--yellow);box-shadow:0 18px 42px rgba(255,211,39,.23)}
+    .btn.secondary{background:rgba(255,255,255,.035);color:#fff}
+    .device-stage{width:100%;display:grid;place-items:center;margin-top:clamp(12px,2.4vw,30px);perspective:1200px}
+    .tablet{
+      width:min(100%,1040px);
+      aspect-ratio:16/8.8;
+      border-radius:34px;
+      padding:12px;
+      background:linear-gradient(135deg,#e6e9f7,#373946 12%,#111421 42%,#d4d8e6 50%,#20232d 57%,#070912 100%);
+      box-shadow:0 42px 90px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.28);
       position:relative;
+      overflow:hidden;
+      transform:none;
     }
-    .avatar:after{
-      content:"";
-      position:absolute;
-      left:14px;right:14px;bottom:-3px;height:34px;
-      background:#1d1f2b;
-      border-radius:50% 50% 0 0;
-    }
-
-    @media (min-width:390px){
-      nav a:nth-child(-n+4){display:inline}
-      .hero{min-height:500px}
-      .dashboard{width:270px;right:-54px;top:118px}
-      h1{font-size:42px}
-    }
+    .tablet:before{content:"";position:absolute;inset:6px;border-radius:29px;border:1px solid rgba(255,255,255,.38);pointer-events:none}
+    .tablet:after{content:"";position:absolute;right:10px;top:42%;width:4px;height:72px;border-radius:8px;background:rgba(255,255,255,.38)}
+    .screen{height:100%;border-radius:24px;background:#050916;overflow:hidden;position:relative;border:1px solid rgba(132,158,255,.22);box-shadow:inset 0 0 42px rgba(0,0,0,.72)}
+    .screen:before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.12),transparent 20%,transparent 58%,rgba(255,255,255,.07));z-index:2;pointer-events:none}
+    .app{height:100%;display:grid;grid-template-columns:21% 1fr 25%;gap:12px;padding:18px;color:#dfe7ff;background:radial-gradient(circle at 72% 5%,rgba(37,105,255,.16),transparent 25%),#071124;font-size:clamp(7px,1vw,12px)}
+    .side,.main,.right{min-width:0}
+    .mini-brand{display:flex;gap:7px;align-items:center;margin-bottom:16px;font-weight:950;color:#fff}.mini-mark{width:28px;height:28px;border-radius:9px;background:#1c73ff;display:grid;place-items:center}.mini-mark:after{content:"✓"}
+    .menu{display:grid;gap:8px}.menu div{display:flex;align-items:center;justify-content:space-between;border-radius:8px;padding:8px 9px;color:#afbddc;background:transparent}.menu div:first-child{background:#155fd9;color:#fff}.pill{border-radius:999px;background:rgba(255,255,255,.09);padding:2px 7px;color:#c7d3ef}.green{color:var(--green)}.red{color:var(--red)}.orange{color:var(--orange)}
+    .welcome{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.welcome h3{font-size:1.25em;margin:0 0 4px;color:#fff}.welcome p{margin:0;color:#8fa2c5}.quick{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:8px 11px;border-radius:8px;color:#fff;font-weight:900}
+    .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:13px}.card{border:1px solid rgba(135,160,255,.18);border-radius:11px;background:rgba(255,255,255,.035);padding:10px}.card b{display:block;font-size:2.1em;color:#fff;margin-top:8px}.card span{color:#aebcdc}.card small{display:block;color:#36d983;font-weight:900;margin-top:5px}
+    .box{border:1px solid rgba(160,180,255,.18);border-radius:12px;background:rgba(255,255,255,.035);padding:12px}.box-title{display:flex;justify-content:space-between;align-items:center;font-weight:950;color:#fff;margin-bottom:10px}.rows{display:grid;gap:7px}.row{display:grid;grid-template-columns:.8fr 1.2fr .6fr 1fr .9fr;gap:8px;align-items:center;border-radius:7px;background:rgba(255,255,255,.045);padding:8px 9px;color:#c8d2ed}.row.head{background:transparent;color:#788cad;font-size:.82em;text-transform:uppercase;font-weight:900}.workflow{display:flex;align-items:center;justify-content:space-between;margin-top:13px}.step{text-align:center;color:#dce7ff}.ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;margin:0 auto 5px;border:1px solid currentColor;background:rgba(255,255,255,.04)}.bar{height:4px;border-radius:99px;background:#14325f;margin-top:12px;overflow:hidden}.bar i{display:block;width:68%;height:100%;background:#2f76ff;box-shadow:0 0 18px #2f76ff}
+    .profile,.health,.billing,.store,.notify,.team{border:1px solid rgba(160,180,255,.18);background:rgba(255,255,255,.035);border-radius:12px;padding:12px;margin-bottom:11px}.profile{display:flex;align-items:center;gap:10px}.avatar{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 50% 32%,#f3c09b 0 23%,transparent 24%),radial-gradient(circle at 50% 31%,#1b1c22 0 30%,transparent 31%),linear-gradient(150deg,#1d2435,#53607c)}.right h4{margin:0 0 8px;color:#fff}.health-line{height:7px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden}.health-line i{display:block;width:93%;height:100%;background:var(--green)}.toggles{display:grid;gap:7px}.toggle{display:flex;justify-content:space-between;color:#c8d2ed}.switch{width:34px;height:18px;border-radius:999px;background:#2f76ff;position:relative}.switch:after{content:"";position:absolute;width:14px;height:14px;right:2px;top:2px;background:#fff;border-radius:50%}
+    .operator{display:flex;align-items:center;gap:10px;margin-top:4px;color:#f2f6ff;font-weight:800}.operator .avatar{width:34px;height:34px}.operator span{font-size:14px;color:#d6dfff}
+    @media (min-width:760px){nav a:not(.login){display:inline}.hero{margin-top:48px}.tablet{border-radius:42px;padding:14px}.screen{border-radius:30px}.app{padding:20px;gap:14px}.wrap{padding-top:32px}}
+    @media (max-width:720px){
+      .wrap{padding-left:16px;padding-right:16px}.brand-text span{display:none}.brand-text strong{font-size:16px}.logo{width:38px;height:38px;border-radius:14px}.login{padding:10px 15px;border-radius:14px}.hero{gap:16px;margin-top:30px}.badge{font-size:11px;padding:9px 13px}h1{font-size:clamp(48px,14vw,70px)}.subhead{font-size:20px}.copy{font-size:15px}.btn{min-height:52px;padding:0 18px}.device-stage{margin-top:12px}.tablet{width:112%;max-width:none;aspect-ratio:16/10;border-radius:28px;padding:9px}.screen{border-radius:21px}.app{grid-template-columns:22% 1fr;gap:8px;padding:12px;font-size:7px}.right{display:none}.cards{grid-template-columns:repeat(3,1fr)}.cards .card:nth-child(n+4){display:none}.row{grid-template-columns:.8fr 1.2fr .6fr 1fr}.row span:last-child{display:none}.workflow{display:none}.operator{justify-content:center}.menu div{padding:6px}.mini-brand{margin-bottom:8px}.box{padding:9px}.side .pill{display:none}}
+    @media (max-width:430px){.actions{width:100%}.btn{flex:1;min-width:145px}.copy br{display:none}.tablet{width:122%;margin-left:0}.app{font-size:6px;padding:10px}.card{padding:8px}.row{padding:7px 8px}.hero{margin-top:25px}}
   </style>
 </head>
 <body>
-  <div class="page">
-    <div class="glow"></div>
-
+  <div class="wrap">
     <header>
-      <a class="brand" href="#">
-        <span class="logo"></span>
-        <span>Fulfillment Pro</span>
+      <a class="brand" href="/landing.html" aria-label="Fulfillment Pro home">
+        <span class="logo">FP</span>
+        <span class="brand-text"><strong>FulfillmentPro</strong><span>AI FULFILLMENT COMMAND CENTER</span></span>
       </a>
       <nav aria-label="Primary">
-        <a href="#features">Product</a>
         <a href="#features">Features</a>
-        <a href="#pricing">Pricing</a>
-        <a href="#resources">Resources</a>
-        <a class="login" href="#">Log in</a>
-        <a class="trial" href="#">Start Free Trial</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#safety">Safety</a>
+        <a class="login" href="/">Log in</a>
       </nav>
     </header>
 
-    <main>
-      <section class="hero">
-        <div class="eyebrow">AI Fulfillment Command Center</div>
-        <h1>Fulfill Orders.<br>Crush Chaos.<br><span>Grow Faster.</span></h1>
-        <p class="sub">
-          The all-in-one platform for Shopify sellers to automate fulfillment,
-          track every order, and scale without limits.
-        </p>
-        <div class="actions">
-          <button class="btn primary">Start Free Trial</button>
-          <button class="btn secondary">See Demo</button>
+    <main class="hero">
+      <div class="badge">Built for dropshippers</div>
+      <h1>The Answer for <span>Dropshippers</span></h1>
+      <p class="subhead">Designed for Drop Shippers.</p>
+      <p class="copy">Automate fulfillment, track every order in real time, and stay organized — all in one powerful dashboard built to scale your dropshipping business.</p>
+      <div class="actions">
+        <a class="btn primary" href="/">Start Free Trial →</a>
+        <a class="btn secondary" href="/">See Demo</a>
+      </div>
+      <div class="operator"><span class="avatar" aria-hidden="true"></span><span>Built with real operators in mind.</span></div>
+
+      <section class="device-stage" aria-label="Fulfillment Pro dashboard front view">
+        <div class="tablet">
+          <div class="screen">
+            <div class="app">
+              <aside class="side">
+                <div class="mini-brand"><span class="mini-mark"></span><span>Fulfillment Pro</span></div>
+                <div class="menu">
+                  <div>Dashboard</div>
+                  <div>Orders <span class="pill">128</span></div>
+                  <div>Queue <span class="pill">42</span></div>
+                  <div>Needs Mapping <span class="pill orange">18</span></div>
+                  <div>Verification <span class="pill orange">64</span></div>
+                  <div>Purchased <span class="pill green">4</span></div>
+                  <div>Failed <span class="pill red">3</span></div>
+                  <div>Products</div>
+                  <div>Tracking Sync</div>
+                </div>
+              </aside>
+
+              <section class="main">
+                <div class="welcome"><div><h3>Welcome back, Marcus! 👋</h3><p>Here’s what’s happening with your fulfillment operations today.</p></div><span class="quick">+ New Order</span></div>
+                <div class="cards">
+                  <div class="card"><span>New Orders</span><b>128</b><small>+23%</small></div>
+                  <div class="card"><span>Queued</span><b>42</b><small>+8%</small></div>
+                  <div class="card"><span>Needs Action</span><b>18</b><small class="orange">+5</small></div>
+                  <div class="card"><span>Purchased</span><b>64</b><small>+18%</small></div>
+                  <div class="card"><span>Failed</span><b>4</b><small class="red">-2</small></div>
+                </div>
+                <div class="box">
+                  <div class="box-title"><span>Recent Orders</span><span style="color:#4b8cff">View all →</span></div>
+                  <div class="rows">
+                    <div class="row head"><span>Order</span><span>Customer</span><span>Items</span><span>Status</span><span>Last Update</span></div>
+                    <div class="row"><span>#1023</span><span>John Smith</span><span>2</span><span>● Queued</span><span>2 min ago</span></div>
+                    <div class="row"><span>#1022</span><span>Sarah Johnson</span><span>1</span><span class="orange">● Needs Mapping</span><span>5 min ago</span></div>
+                    <div class="row"><span>#1021</span><span>Mike Davis</span><span>3</span><span class="green">● Purchased</span><span>12 min ago</span></div>
+                    <div class="row"><span>#1020</span><span>Emily Brown</span><span>2</span><span class="orange">● Verification</span><span>15 min ago</span></div>
+                  </div>
+                </div>
+                <div class="box" style="margin-top:12px">
+                  <div class="box-title"><span>Fulfillment Workflow</span><span>68%</span></div>
+                  <div class="workflow">
+                    <div class="step"><div class="ico green">🛍</div><span>Order<br>Received</span></div>
+                    <div>→</div>
+                    <div class="step"><div class="ico">▣</div><span>Product<br>Matched</span></div>
+                    <div>→</div>
+                    <div class="step"><div class="ico orange">👤</div><span>Owner<br>Review</span></div>
+                    <div>→</div>
+                    <div class="step"><div class="ico green">✓</div><span>Purchase<br>Complete</span></div>
+                    <div>→</div>
+                    <div class="step"><div class="ico">🚚</div><span>Tracking<br>Synced</span></div>
+                  </div>
+                  <div class="bar"><i></i></div>
+                </div>
+              </section>
+
+              <aside class="right">
+                <div class="profile"><span class="avatar"></span><div><h4>Marcus Hawkins</h4><div>Growth Essentials</div></div></div>
+                <div class="health"><h4>Account Health</h4><div class="green" style="font-weight:950;margin-bottom:7px">Excellent</div><div class="health-line"><i></i></div></div>
+                <div class="billing"><h4>Plan & Billing</h4><div style="font-weight:950">Pro Plan</div><div>$149 /month</div></div>
+                <div class="store"><h4>Store Connection</h4><div class="green" style="font-weight:950">Shopify Connected</div></div>
+                <div class="notify"><h4>Notifications</h4><div class="toggles"><div class="toggle"><span>Email Alerts</span><span class="switch"></span></div><div class="toggle"><span>Order Sound</span><span class="switch"></span></div></div></div>
+              </aside>
+            </div>
+          </div>
         </div>
-        <div class="micro">No credit card &nbsp;•&nbsp; 14-day free trial &nbsp;•&nbsp; Cancel anytime</div>
-
-        <img class="dashboard" src="assets/dashboard.png" alt="Fulfillment Pro dashboard overview" />
-      </section>
-
-      <section class="stats" aria-label="Product statistics">
-        <div class="stat"><strong><i>◆</i>10K+</strong><span>Active Sellers</span></div>
-        <div class="stat"><strong><i>▣</i>1M+</strong><span>Orders Processed</span></div>
-        <div class="stat"><strong><i>◉</i>99.9%</strong><span>Tracking Accuracy</span></div>
-        <div class="stat"><strong><i>⌁</i>24/7</strong><span>AI Monitoring</span></div>
-      </section>
-
-      <section class="section" id="features">
-        <h2>Automate. Track. Scale.<br>All in One Command Center.</h2>
-        <div class="features">
-          <div class="feature">
-            <div class="icon">▣</div>
-            <strong>Auto Import</strong>
-            <span>Orders flow in automatically.</span>
-          </div>
-          <div class="feature">
-            <div class="icon">⌘</div>
-            <strong>Smart Mapping</strong>
-            <span>Match products like a pro.</span>
-          </div>
-          <div class="feature">
-            <div class="icon">♫</div>
-            <strong>Supplier Orders</strong>
-            <span>Purchase with confidence.</span>
-          </div>
-          <div class="feature">
-            <div class="icon">⟳</div>
-            <strong>Tracking Sync</strong>
-            <span>Updates flow automatically.</span>
-          </div>
-          <div class="feature">
-            <div class="icon">♟</div>
-            <strong>Smart Alerts</strong>
-            <span>We notify you instantly.</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="shopify" id="pricing">
-        <div class="shopify-logo">🛍️</div>
-        <div>
-          <small>Built for Shopify</small>
-          <strong>Connect in minutes.<br>Start fulfilling in style.</strong>
-        </div>
-        <a class="trial" href="#">Start Free Trial</a>
-      </section>
-
-      <section class="testimonial" id="resources">
-        <div class="quote">“</div>
-        <div>
-          <p>Fulfillment Pro cut our manual work in half and helped us scale 3× in 60 days.</p>
-          <div class="author">— Alex R., Founder of Velocity Brands</div>
-          <div class="stars">★★★★★</div>
-        </div>
-        <div class="avatar" aria-label="Customer portrait"></div>
       </section>
     </main>
   </div>
