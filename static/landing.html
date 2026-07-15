@@ -1,123 +1,396 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Fulfillment Pro | AI Fulfillment Command Center</title>
-  <meta name="theme-color" content="#061226" />
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b2b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Fulfillment Pro</title>
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; min-height: 100%; overflow-x: hidden; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #eef6ff;
-      background:
-        radial-gradient(circle at 15% 5%, rgba(37, 99, 235, 0.35), transparent 28rem),
-        radial-gradient(circle at 85% 15%, rgba(168, 85, 247, 0.28), transparent 30rem),
-        linear-gradient(145deg, #050b16 0%, #07162b 48%, #030712 100%);
+    :root{
+      --bg:#070b2b;
+      --bg2:#10106f;
+      --blue:#3b82ff;
+      --cyan:#21d4fd;
+      --yellow:#ffd52a;
+      --violet:#8d48ff;
+      --pink:#ea3eb9;
+      --text:#fff;
+      --muted:#d6d9ee;
+      --line:rgba(255,255,255,.16);
+      --safe-top:env(safe-area-inset-top, 0px);
+      --safe-bottom:env(safe-area-inset-bottom, 0px);
     }
-    .glass { background: rgba(8, 20, 39, 0.72); border: 1px solid rgba(148, 163, 184, 0.22); box-shadow: 0 24px 80px rgba(0,0,0,.35); backdrop-filter: blur(18px); }
-    .blue-glow { box-shadow: 0 0 38px rgba(37, 99, 235, .38); }
-    .grid-bg { background-image: linear-gradient(rgba(148,163,184,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.07) 1px, transparent 1px); background-size: 34px 34px; }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;background:var(--bg)}
+    body{
+      margin:0;
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,Segoe UI,Roboto,Arial,sans-serif;
+      background:
+        radial-gradient(circle at 88% 9%, rgba(0,145,255,.72), transparent 24%),
+        radial-gradient(circle at 34% 34%, rgba(82,42,255,.55), transparent 28%),
+        radial-gradient(circle at 76% 48%, rgba(255,0,156,.26), transparent 21%),
+        linear-gradient(180deg,#10108d 0%,#08083f 42%,#080b32 100%);
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    a{color:inherit;text-decoration:none}
+    button{font:inherit}
+    .page{
+      width:min(100%, 430px);
+      margin:0 auto;
+      min-height:100vh;
+      position:relative;
+      overflow:hidden;
+      padding-bottom:calc(24px + var(--safe-bottom));
+    }
+
+    .glow{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(150deg,transparent 32%,rgba(255,255,255,.04) 33%,transparent 34%),
+        linear-gradient(18deg,transparent 60%,rgba(48,63,255,.45) 61%,transparent 62%);
+      mix-blend-mode:screen;
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:calc(14px + var(--safe-top)) 18px 12px;
+      position:relative;
+      z-index:3;
+    }
+
+    .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px}
+    .logo{
+      width:22px;height:22px;
+      border:2px solid #7d79ff;
+      transform:rotate(30deg);
+      display:grid;place-items:center;
+      box-shadow:0 0 20px rgba(92,103,255,.65);
+    }
+    .logo:after{
+      content:"✓";
+      transform:rotate(-30deg);
+      color:#fff;
+      font-size:13px;
+      font-weight:900;
+    }
+
+    nav{display:flex;align-items:center;gap:10px;font-size:7px;font-weight:700}
+    nav a:nth-child(-n+4){display:none}
+    .login{opacity:.9}
+    .trial{
+      background:var(--yellow);
+      color:#151126;
+      font-weight:900;
+      padding:8px 10px;
+      border-radius:6px;
+      box-shadow:0 5px 18px rgba(255,213,42,.22);
+      white-space:nowrap;
+    }
+
+    main{position:relative;z-index:2}
+    .hero{
+      padding:18px 20px 0;
+      position:relative;
+      min-height:470px;
+    }
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      color:#f2d83a;
+      font-size:8px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      margin-bottom:12px;
+    }
+    .eyebrow:before{
+      content:"";
+      width:5px;height:5px;border-radius:50%;
+      background:#f2d83a;
+      box-shadow:0 0 10px #f2d83a;
+    }
+    h1{
+      margin:0;
+      max-width:250px;
+      font-size:39px;
+      line-height:.98;
+      letter-spacing:-.045em;
+      font-weight:900;
+    }
+    h1 span{color:var(--yellow)}
+    .sub{
+      max-width:222px;
+      margin:14px 0 15px;
+      font-size:12px;
+      line-height:1.45;
+      color:var(--muted);
+    }
+    .actions{display:flex;gap:10px;align-items:center}
+    .btn{
+      border:0;
+      border-radius:6px;
+      padding:11px 16px;
+      font-size:11px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .btn.primary{background:var(--yellow);color:#171229}
+    .btn.secondary{
+      background:transparent;
+      color:white;
+      border:1px solid rgba(255,255,255,.42);
+    }
+    .micro{
+      margin-top:9px;
+      color:#bec2dc;
+      font-size:7px;
+      letter-spacing:.01em;
+    }
+    .dashboard{
+      position:absolute;
+      right:-42px;
+      top:115px;
+      width:245px;
+      transform:rotate(5deg);
+      filter:drop-shadow(0 30px 32px rgba(0,0,0,.45));
+      border-radius:17px;
+    }
+
+    .stats{
+      margin-top:0;
+      padding:18px 12px;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      border-top:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(90deg,rgba(16,123,255,.25),rgba(181,0,222,.18),rgba(255,57,127,.15));
+    }
+    .stat{text-align:center;position:relative}
+    .stat:not(:last-child):after{
+      content:"";
+      position:absolute;
+      right:0;top:12%;bottom:12%;
+      width:1px;background:rgba(255,255,255,.12);
+    }
+    .stat strong{display:block;font-size:17px;line-height:1;font-weight:900}
+    .stat span{display:block;margin-top:5px;font-size:7px;color:#d8dcf2}
+    .stat i{font-style:normal;margin-right:3px}
+
+    .section{
+      padding:34px 20px 28px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+    .section h2{
+      margin:0 auto 26px;
+      max-width:320px;
+      text-align:center;
+      font-size:22px;
+      line-height:1.08;
+      letter-spacing:-.025em;
+    }
+
+    .features{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:8px;
+      align-items:start;
+    }
+    .feature{text-align:center}
+    .icon{
+      width:42px;height:42px;
+      margin:0 auto 9px;
+      border-radius:50%;
+      display:grid;place-items:center;
+      font-size:19px;
+      border:1px solid currentColor;
+      box-shadow:0 0 18px currentColor inset,0 0 18px rgba(255,255,255,.06);
+    }
+    .feature:nth-child(1){color:#ffd42a}
+    .feature:nth-child(2){color:#7acbff}
+    .feature:nth-child(3){color:#a87aff}
+    .feature:nth-child(4){color:#21d4fd}
+    .feature:nth-child(5){color:#ef55c4}
+    .feature strong{
+      display:block;
+      color:white;
+      font-size:8px;
+      line-height:1.15;
+      margin-bottom:4px;
+    }
+    .feature span{
+      display:block;
+      color:#d6daef;
+      font-size:6px;
+      line-height:1.25;
+    }
+
+    .shopify{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      align-items:center;
+      gap:12px;
+      padding:28px 20px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+    .shopify-logo{
+      font-size:38px;
+      filter:drop-shadow(0 0 12px rgba(115,220,62,.45));
+    }
+    .shopify small{display:block;color:#5bb9ff;font-size:8px;margin-bottom:3px}
+    .shopify strong{display:block;font-size:10px;line-height:1.25}
+
+    .testimonial{
+      padding:30px 24px 34px;
+      display:grid;
+      grid-template-columns:28px 1fr 78px;
+      gap:12px;
+      align-items:center;
+    }
+    .quote{
+      font-size:36px;
+      color:#4868ff;
+      line-height:1;
+      align-self:start;
+    }
+    .testimonial p{
+      margin:0 0 7px;
+      font-size:10px;
+      line-height:1.45;
+      color:#f4f5ff;
+    }
+    .author{font-size:8px;color:#c8cbe0}
+    .stars{margin-top:8px;color:var(--yellow);font-size:11px;letter-spacing:2px}
+    .avatar{
+      width:72px;height:72px;border-radius:50%;
+      overflow:hidden;
+      border:2px solid rgba(255,255,255,.8);
+      background:
+        radial-gradient(circle at 50% 35%,#f3c8a5 0 23%,transparent 24%),
+        radial-gradient(circle at 50% 36%,#23232a 0 28%,transparent 29%),
+        linear-gradient(145deg,#181b2b,#50566b);
+      position:relative;
+    }
+    .avatar:after{
+      content:"";
+      position:absolute;
+      left:14px;right:14px;bottom:-3px;height:34px;
+      background:#1d1f2b;
+      border-radius:50% 50% 0 0;
+    }
+
+    @media (min-width:390px){
+      nav a:nth-child(-n+4){display:inline}
+      .hero{min-height:500px}
+      .dashboard{width:270px;right:-54px;top:118px}
+      h1{font-size:42px}
+    }
   </style>
 </head>
 <body>
-  <main class="relative min-h-screen grid-bg">
-    <nav class="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
-      <a href="/landing.html" class="flex items-center gap-3 no-underline">
-        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 blue-glow font-black">FP</div>
-        <div>
-          <div class="text-xl font-black tracking-tight">Fulfillment<span class="text-blue-400">Pro</span></div>
-          <div class="text-[10px] font-black uppercase tracking-[.24em] text-slate-400">AI Fulfillment Command Center</div>
-        </div>
+  <div class="page">
+    <div class="glow"></div>
+
+    <header>
+      <a class="brand" href="#">
+        <span class="logo"></span>
+        <span>Fulfillment Pro</span>
       </a>
-      <div class="hidden items-center gap-6 text-sm font-bold text-slate-300 md:flex">
-        <a href="#features" class="hover:text-white">Features</a>
-        <a href="#workflow" class="hover:text-white">Workflow</a>
-        <a href="#safety" class="hover:text-white">Safety</a>
-      </div>
-      <a href="/" class="rounded-2xl border border-blue-400/40 bg-blue-600/15 px-5 py-3 text-sm font-black text-blue-100 no-underline hover:bg-blue-600/30">Log in</a>
-    </nav>
+      <nav aria-label="Primary">
+        <a href="#features">Product</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#resources">Resources</a>
+        <a class="login" href="#">Log in</a>
+        <a class="trial" href="#">Start Free Trial</a>
+      </nav>
+    </header>
 
-    <section class="mx-auto grid max-w-7xl gap-10 px-5 pb-16 pt-8 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:pt-14">
-      <div>
-        <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-blue-200">
-          Built for Shopify sellers
-        </div>
-        <h1 class="max-w-4xl text-5xl font-black leading-[.96] tracking-tight sm:text-6xl lg:text-7xl">
-          Fulfill orders without the chaos.
-        </h1>
-        <p class="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-300 sm:text-xl">
-          Fulfillment Pro turns new Shopify orders into organized fulfillment tasks, product matching, owner alerts, supplier purchase steps, and tracking workflows.
+    <main>
+      <section class="hero">
+        <div class="eyebrow">AI Fulfillment Command Center</div>
+        <h1>Fulfill Orders.<br>Crush Chaos.<br><span>Grow Faster.</span></h1>
+        <p class="sub">
+          The all-in-one platform for Shopify sellers to automate fulfillment,
+          track every order, and scale without limits.
         </p>
-        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-          <a href="/" class="rounded-2xl bg-blue-600 px-7 py-4 text-center text-base font-black text-white no-underline blue-glow hover:bg-blue-500">Open Dashboard</a>
-          <a href="#workflow" class="rounded-2xl border border-slate-600 bg-white/5 px-7 py-4 text-center text-base font-black text-white no-underline hover:bg-white/10">See Workflow</a>
+        <div class="actions">
+          <button class="btn primary">Start Free Trial</button>
+          <button class="btn secondary">See Demo</button>
         </div>
-        <div class="mt-8 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
-          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-blue-300">01</div><div class="mt-1 text-xs font-bold text-slate-300">Order intake</div></div>
-          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-purple-300">02</div><div class="mt-1 text-xs font-bold text-slate-300">Product match</div></div>
-          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-amber-300">03</div><div class="mt-1 text-xs font-bold text-slate-300">Owner review</div></div>
-          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-emerald-300">04</div><div class="mt-1 text-xs font-bold text-slate-300">Tracking sync</div></div>
-        </div>
-      </div>
+        <div class="micro">No credit card &nbsp;•&nbsp; 14-day free trial &nbsp;•&nbsp; Cancel anytime</div>
 
-      <div class="glass rounded-[2rem] p-4 sm:p-6">
-        <div class="rounded-[1.5rem] border border-slate-700 bg-slate-950/80 p-4">
-          <div class="mb-4 flex items-center justify-between">
-            <div>
-              <div class="text-sm font-black text-white">Dashboard Preview</div>
-              <div class="text-xs font-bold text-slate-500">Owner-controlled fulfillment workspace</div>
-            </div>
-            <div class="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-xs font-black text-emerald-300">ONLINE</div>
+        <img class="dashboard" src="assets/dashboard.png" alt="Fulfillment Pro dashboard overview" />
+      </section>
+
+      <section class="stats" aria-label="Product statistics">
+        <div class="stat"><strong><i>◆</i>10K+</strong><span>Active Sellers</span></div>
+        <div class="stat"><strong><i>▣</i>1M+</strong><span>Orders Processed</span></div>
+        <div class="stat"><strong><i>◉</i>99.9%</strong><span>Tracking Accuracy</span></div>
+        <div class="stat"><strong><i>⌁</i>24/7</strong><span>AI Monitoring</span></div>
+      </section>
+
+      <section class="section" id="features">
+        <h2>Automate. Track. Scale.<br>All in One Command Center.</h2>
+        <div class="features">
+          <div class="feature">
+            <div class="icon">▣</div>
+            <strong>Auto Import</strong>
+            <span>Orders flow in automatically.</span>
           </div>
-          <div class="grid grid-cols-3 gap-3">
-            <div class="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4"><div class="text-xs font-black text-slate-400">ORDERS</div><div class="mt-2 text-3xl font-black">27</div></div>
-            <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4"><div class="text-xs font-black text-slate-400">DONE</div><div class="mt-2 text-3xl font-black">15</div></div>
-            <div class="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4"><div class="text-xs font-black text-slate-400">QUEUE</div><div class="mt-2 text-3xl font-black">0</div></div>
+          <div class="feature">
+            <div class="icon">⌘</div>
+            <strong>Smart Mapping</strong>
+            <span>Match products like a pro.</span>
           </div>
-          <div class="mt-4 rounded-2xl border border-slate-700 bg-slate-900/90 p-4">
-            <div class="mb-3 text-sm font-black">Recent Orders</div>
-            <div class="space-y-2 text-xs font-bold text-slate-300">
-              <div class="flex justify-between rounded-xl bg-white/5 p-3"><span>#1407 Marcus Hawkins</span><span class="text-emerald-300">DONE</span></div>
-              <div class="flex justify-between rounded-xl bg-white/5 p-3"><span>#1406 Marcus Hawkins</span><span class="text-red-300">FAILED</span></div>
-              <div class="flex justify-between rounded-xl bg-white/5 p-3"><span>#1405 Marcus Hawkins</span><span class="text-emerald-300">DONE</span></div>
-            </div>
+          <div class="feature">
+            <div class="icon">♫</div>
+            <strong>Supplier Orders</strong>
+            <span>Purchase with confidence.</span>
+          </div>
+          <div class="feature">
+            <div class="icon">⟳</div>
+            <strong>Tracking Sync</strong>
+            <span>Updates flow automatically.</span>
+          </div>
+          <div class="feature">
+            <div class="icon">♟</div>
+            <strong>Smart Alerts</strong>
+            <span>We notify you instantly.</span>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="features" class="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
-      <div class="grid gap-4 md:grid-cols-3">
-        <div class="glass rounded-3xl p-6"><div class="text-3xl">🛍️</div><h3 class="mt-4 text-xl font-black">Order Intake</h3><p class="mt-2 text-sm font-semibold leading-6 text-slate-400">Automatically organizes Shopify orders into a clear fulfillment queue.</p></div>
-        <div class="glass rounded-3xl p-6"><div class="text-3xl">🧩</div><h3 class="mt-4 text-xl font-black">Product Mapping</h3><p class="mt-2 text-sm font-semibold leading-6 text-slate-400">Matches SKUs to supplier listings and flags anything that needs attention.</p></div>
-        <div class="glass rounded-3xl p-6"><div class="text-3xl">🔔</div><h3 class="mt-4 text-xl font-black">Owner Alerts</h3><p class="mt-2 text-sm font-semibold leading-6 text-slate-400">Get notified when orders arrive, fail validation, or need manual review.</p></div>
-      </div>
-    </section>
-
-    <section id="workflow" class="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
-      <div class="glass rounded-[2rem] p-6 sm:p-8">
-        <h2 class="text-3xl font-black">The fulfillment workflow</h2>
-        <div class="mt-6 grid gap-3 md:grid-cols-6">
-          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Order<br><span class="text-blue-300">Received</span></div>
-          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Product<br><span class="text-purple-300">Matched</span></div>
-          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Supplier<br><span class="text-amber-300">Prepared</span></div>
-          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Owner<br><span class="text-orange-300">Review</span></div>
-          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Purchase<br><span class="text-emerald-300">Complete</span></div>
-          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Tracking<br><span class="text-blue-300">Synced</span></div>
+      <section class="shopify" id="pricing">
+        <div class="shopify-logo">🛍️</div>
+        <div>
+          <small>Built for Shopify</small>
+          <strong>Connect in minutes.<br>Start fulfilling in style.</strong>
         </div>
-      </div>
-    </section>
+        <a class="trial" href="#">Start Free Trial</a>
+      </section>
 
-    <section id="safety" class="mx-auto max-w-7xl px-5 pb-20 sm:px-8">
-      <div class="rounded-[2rem] border border-emerald-400/20 bg-emerald-400/10 p-6 sm:p-8">
-        <h2 class="text-3xl font-black">Owner-controlled by design</h2>
-        <p class="mt-3 max-w-4xl text-base font-semibold leading-7 text-slate-300">Fulfillment Pro is positioned as a fulfillment command center, not a hidden auto-buying bot. The scalable product should keep sellers in control with manual approval, security checks, and clear task visibility.</p>
-        <a href="/" class="mt-6 inline-flex rounded-2xl bg-white px-6 py-4 text-sm font-black text-slate-950 no-underline">Enter Dashboard</a>
-      </div>
-    </section>
-  </main>
+      <section class="testimonial" id="resources">
+        <div class="quote">“</div>
+        <div>
+          <p>Fulfillment Pro cut our manual work in half and helped us scale 3× in 60 days.</p>
+          <div class="author">— Alex R., Founder of Velocity Brands</div>
+          <div class="stars">★★★★★</div>
+        </div>
+        <div class="avatar" aria-label="Customer portrait"></div>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
