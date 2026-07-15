@@ -14,6 +14,46 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
+// Add Marcus profile image to the live dashboard header without changing index.html structure.
+function installDashboardProfileAvatar() {
+  const apply = () => {
+    try {
+      if (document.getElementById('dashboard-profile-avatar')) return;
+
+      const headerRight = document.querySelector('header .flex.items-center.gap-1');
+      if (!headerRight) return;
+
+      const avatarWrap = document.createElement('div');
+      avatarWrap.id = 'dashboard-profile-avatar';
+      avatarWrap.className = 'flex items-center gap-1 bg-white px-1.5 py-1 rounded-lg border border-indigo-200 shadow-sm';
+      avatarWrap.innerHTML = `
+        <img
+          src="/assets/jr.jpg"
+          alt="Marcus Hawkins"
+          class="w-7 h-7 rounded-full object-cover object-top border-2 border-indigo-500"
+          loading="eager"
+        />
+        <div class="hidden sm:block leading-tight pr-1">
+          <div class="text-[9px] font-black text-gray-800">Marcus</div>
+          <div class="text-[7px] font-bold text-gray-500">Owner</div>
+        </div>
+      `;
+
+      headerRight.insertBefore(avatarWrap, headerRight.firstChild);
+    } catch (error) {
+      console.warn('Dashboard profile avatar failed:', error);
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', apply, { once: true });
+  } else {
+    apply();
+  }
+}
+
+installDashboardProfileAvatar();
+
 export async function requestNotificationPermission() {
   try {
     console.log('🔔 Requesting notification permission...');
@@ -71,8 +111,8 @@ onMessage(messaging, (payload) => {
   const notificationTitle = payload.notification?.title || 'FulfillmentPro';
   const notificationOptions = {
     body: payload.notification?.body || 'New notification',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: '/assets/jr.jpg',
+    badge: '/assets/jr.jpg',
     tag: payload.data?.type || 'general',
     requireInteraction: false,
     data: payload.data
@@ -119,5 +159,3 @@ function showNotificationDenied() {
 
 
 export { messaging };
-
-
