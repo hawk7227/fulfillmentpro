@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Fulfillment Pro | AI Fulfillment Command Center</title>
+  <meta name="theme-color" content="#061226" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; min-height: 100%; overflow-x: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #eef6ff;
+      background:
+        radial-gradient(circle at 15% 5%, rgba(37, 99, 235, 0.35), transparent 28rem),
+        radial-gradient(circle at 85% 15%, rgba(168, 85, 247, 0.28), transparent 30rem),
+        linear-gradient(145deg, #050b16 0%, #07162b 48%, #030712 100%);
+    }
+    .glass { background: rgba(8, 20, 39, 0.72); border: 1px solid rgba(148, 163, 184, 0.22); box-shadow: 0 24px 80px rgba(0,0,0,.35); backdrop-filter: blur(18px); }
+    .blue-glow { box-shadow: 0 0 38px rgba(37, 99, 235, .38); }
+    .grid-bg { background-image: linear-gradient(rgba(148,163,184,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.07) 1px, transparent 1px); background-size: 34px 34px; }
+  </style>
+</head>
+<body>
+  <main class="relative min-h-screen grid-bg">
+    <nav class="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
+      <a href="/landing.html" class="flex items-center gap-3 no-underline">
+        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 blue-glow font-black">FP</div>
+        <div>
+          <div class="text-xl font-black tracking-tight">Fulfillment<span class="text-blue-400">Pro</span></div>
+          <div class="text-[10px] font-black uppercase tracking-[.24em] text-slate-400">AI Fulfillment Command Center</div>
+        </div>
+      </a>
+      <div class="hidden items-center gap-6 text-sm font-bold text-slate-300 md:flex">
+        <a href="#features" class="hover:text-white">Features</a>
+        <a href="#workflow" class="hover:text-white">Workflow</a>
+        <a href="#safety" class="hover:text-white">Safety</a>
+      </div>
+      <a href="/" class="rounded-2xl border border-blue-400/40 bg-blue-600/15 px-5 py-3 text-sm font-black text-blue-100 no-underline hover:bg-blue-600/30">Log in</a>
+    </nav>
+
+    <section class="mx-auto grid max-w-7xl gap-10 px-5 pb-16 pt-8 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:pt-14">
+      <div>
+        <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-blue-200">
+          Built for Shopify sellers
+        </div>
+        <h1 class="max-w-4xl text-5xl font-black leading-[.96] tracking-tight sm:text-6xl lg:text-7xl">
+          Fulfill orders without the chaos.
+        </h1>
+        <p class="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-300 sm:text-xl">
+          Fulfillment Pro turns new Shopify orders into organized fulfillment tasks, product matching, owner alerts, supplier purchase steps, and tracking workflows.
+        </p>
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+          <a href="/" class="rounded-2xl bg-blue-600 px-7 py-4 text-center text-base font-black text-white no-underline blue-glow hover:bg-blue-500">Open Dashboard</a>
+          <a href="#workflow" class="rounded-2xl border border-slate-600 bg-white/5 px-7 py-4 text-center text-base font-black text-white no-underline hover:bg-white/10">See Workflow</a>
+        </div>
+        <div class="mt-8 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-blue-300">01</div><div class="mt-1 text-xs font-bold text-slate-300">Order intake</div></div>
+          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-purple-300">02</div><div class="mt-1 text-xs font-bold text-slate-300">Product match</div></div>
+          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-amber-300">03</div><div class="mt-1 text-xs font-bold text-slate-300">Owner review</div></div>
+          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-emerald-300">04</div><div class="mt-1 text-xs font-bold text-slate-300">Tracking sync</div></div>
+        </div>
+      </div>
+
+      <div class="glass rounded-[2rem] p-4 sm:p-6">
+        <div class="rounded-[1.5rem] border border-slate-700 bg-slate-950/80 p-4">
+          <div class="mb-4 flex items-center justify-between">
+            <div>
+              <div class="text-sm font-black text-white">Dashboard Preview</div>
+              <div class="text-xs font-bold text-slate-500">Owner-controlled fulfillment workspace</div>
+            </div>
+            <div class="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-xs font-black text-emerald-300">ONLINE</div>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4"><div class="text-xs font-black text-slate-400">ORDERS</div><div class="mt-2 text-3xl font-black">27</div></div>
+            <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4"><div class="text-xs font-black text-slate-400">DONE</div><div class="mt-2 text-3xl font-black">15</div></div>
+            <div class="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4"><div class="text-xs font-black text-slate-400">QUEUE</div><div class="mt-2 text-3xl font-black">0</div></div>
+          </div>
+          <div class="mt-4 rounded-2xl border border-slate-700 bg-slate-900/90 p-4">
+            <div class="mb-3 text-sm font-black">Recent Orders</div>
+            <div class="space-y-2 text-xs font-bold text-slate-300">
+              <div class="flex justify-between rounded-xl bg-white/5 p-3"><span>#1407 Marcus Hawkins</span><span class="text-emerald-300">DONE</span></div>
+              <div class="flex justify-between rounded-xl bg-white/5 p-3"><span>#1406 Marcus Hawkins</span><span class="text-red-300">FAILED</span></div>
+              <div class="flex justify-between rounded-xl bg-white/5 p-3"><span>#1405 Marcus Hawkins</span><span class="text-emerald-300">DONE</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
+      <div class="grid gap-4 md:grid-cols-3">
+        <div class="glass rounded-3xl p-6"><div class="text-3xl">🛍️</div><h3 class="mt-4 text-xl font-black">Order Intake</h3><p class="mt-2 text-sm font-semibold leading-6 text-slate-400">Automatically organizes Shopify orders into a clear fulfillment queue.</p></div>
+        <div class="glass rounded-3xl p-6"><div class="text-3xl">🧩</div><h3 class="mt-4 text-xl font-black">Product Mapping</h3><p class="mt-2 text-sm font-semibold leading-6 text-slate-400">Matches SKUs to supplier listings and flags anything that needs attention.</p></div>
+        <div class="glass rounded-3xl p-6"><div class="text-3xl">🔔</div><h3 class="mt-4 text-xl font-black">Owner Alerts</h3><p class="mt-2 text-sm font-semibold leading-6 text-slate-400">Get notified when orders arrive, fail validation, or need manual review.</p></div>
+      </div>
+    </section>
+
+    <section id="workflow" class="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
+      <div class="glass rounded-[2rem] p-6 sm:p-8">
+        <h2 class="text-3xl font-black">The fulfillment workflow</h2>
+        <div class="mt-6 grid gap-3 md:grid-cols-6">
+          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Order<br><span class="text-blue-300">Received</span></div>
+          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Product<br><span class="text-purple-300">Matched</span></div>
+          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Supplier<br><span class="text-amber-300">Prepared</span></div>
+          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Owner<br><span class="text-orange-300">Review</span></div>
+          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Purchase<br><span class="text-emerald-300">Complete</span></div>
+          <div class="rounded-2xl bg-white/5 p-4 text-center text-sm font-black">Tracking<br><span class="text-blue-300">Synced</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="safety" class="mx-auto max-w-7xl px-5 pb-20 sm:px-8">
+      <div class="rounded-[2rem] border border-emerald-400/20 bg-emerald-400/10 p-6 sm:p-8">
+        <h2 class="text-3xl font-black">Owner-controlled by design</h2>
+        <p class="mt-3 max-w-4xl text-base font-semibold leading-7 text-slate-300">Fulfillment Pro is positioned as a fulfillment command center, not a hidden auto-buying bot. The scalable product should keep sellers in control with manual approval, security checks, and clear task visibility.</p>
+        <a href="/" class="mt-6 inline-flex rounded-2xl bg-white px-6 py-4 text-sm font-black text-slate-950 no-underline">Enter Dashboard</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
