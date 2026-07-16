@@ -1,0 +1,26 @@
+.shopify-sync-card {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:16px;
+  margin:16px 0;
+  border-radius:12px;
+  background:#111827;
+  color:white;
+}
+
+#sync-shopify-button {
+  border:0;
+  border-radius:8px;
+  padding:10px 16px;
+  background:#16a34a;
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+
+#sync-shopify-button:disabled {
+  opacity:.6;
+  cursor:wait;
+}
