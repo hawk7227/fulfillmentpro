@@ -668,3 +668,24 @@ def static_file(path: str):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
+
+
+@app.route("/api/shopify/status", methods=["GET"])
+def shopify_status():
+    """
+    Dashboard-friendly Shopify connection status.
+    """
+    try:
+        token = get_shopify_access_token(SHOPIFY_STORE_DOMAIN)
+
+        return jsonify({
+            "connected": bool(token),
+            "shop": SHOPIFY_STORE_DOMAIN,
+        })
+
+    except Exception as e:
+        return jsonify({
+            "connected": False,
+            "shop": SHOPIFY_STORE_DOMAIN,
+            "error": str(e),
+        }), 500
