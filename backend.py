@@ -535,6 +535,30 @@ def import_catalog():
     return jsonify({"status": "imported", "count": imported})
 
 
+
+@app.after_request
+def disable_dashboard_caching(response):
+    """
+    Prevent browsers and intermediary caches from serving outdated dashboard,
+    service-worker, manifest, and API responses after a deployment.
+    """
+    path = request.path
+
+    if (
+        path == "/"
+        or path == "/index.html"
+        or path == "/sw.js"
+        or path == "/manifest.json"
+        or path.startswith("/api/")
+    ):
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, max-age=0"
+        )
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
+    return response
+
 @app.route("/webhooks/shopify/orders-create", methods=["POST"])
 @app.route("/webhooks/shopify/orders-updated", methods=["POST"])
 @app.route("/webhooks/shopify/orders-cancelled", methods=["POST"])
