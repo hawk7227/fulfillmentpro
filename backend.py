@@ -403,25 +403,149 @@ def auth_check():
 @app.get("/api/dashboard")
 @require_dashboard_auth
 def dashboard():
+    """
+    Return Home dashboard metrics from the same orders database used by
+    /api/orders. Optional worker and sync metadata can never prevent the
+    primary Shopify order metrics from loading.
+    """
     conn = get_db()
     today = datetime.now(timezone.utc).date().isoformat()
-    counts = {r["state"]: r["count"] for r in conn.execute("SELECT state,COUNT(*) count FROM tasks GROUP BY state")}
-    row = conn.execute("""SELECT COUNT(*) total_orders, COALESCE(SUM(current_total_price),0) revenue, COALESCE(SUM(refunds_total),0) refunds,
-      SUM(CASE WHEN financial_status='PAID' THEN 1 ELSE 0 END) paid_orders,
-      SUM(CASE WHEN fulfillment_status IN ('FULFILLED','PARTIALLY_FULFILLED') THEN 1 ELSE 0 END) fulfilled_orders,
-      SUM(CASE WHEN delivery_status='DELIVERED' THEN 1 ELSE 0 END) delivered_orders,
-      SUM(CASE WHEN substr(created_at,1,10)=? THEN 1 ELSE 0 END) orders_today,
-      COALESCE(SUM(CASE WHEN substr(created_at,1,10)=? THEN item_count ELSE 0 END),0) items_today FROM orders""", (today, today)).fetchone()
-    recent = [dict(r) for r in conn.execute("""SELECT o.*,COUNT(t.id) total_tasks,SUM(CASE WHEN t.state='purchased' THEN 1 ELSE 0 END) purchased_tasks,
-      SUM(CASE WHEN t.state='failed' THEN 1 ELSE 0 END) failed_tasks,SUM(CASE WHEN t.state='needs_mapping' THEN 1 ELSE 0 END) mapping_tasks,
-      SUM(CASE WHEN t.state='verification_required' THEN 1 ELSE 0 END) verification_tasks
-      FROM orders o LEFT JOIN tasks t ON t.order_id=o.id GROUP BY o.id ORDER BY o.created_at DESC LIMIT 12""")]
-    tops = [dict(r) for r in conn.execute("""SELECT COALESCE(NULLIF(title,''),'Untitled product') title,MAX(image_url) image_url,SUM(quantity) units,SUM(quantity*price) revenue FROM line_items GROUP BY title ORDER BY units DESC LIMIT 5""")]
-    sync = dict(conn.execute("SELECT * FROM sync_runs ORDER BY id DESC LIMIT 1").fetchone() or {})
-    worker = worker_snapshot(conn)
+
+    counts = {
+        row["state"]: int(row["count"] or 0)
+        for row in conn.execute(
+            "SELECT state, COUNT(*) AS count FROM tasks GROUP BY state"
+        )
+    }
+
+    row = conn.execute(
+        """
+        SELECT
+          COUNT(*) AS total_orders,
+          COALESCE(SUM(COALESCE(current_total_price, total_price, 0)), 0)
+            AS revenue,
+          COALESCE(SUM(COALESCE(refunds_total, 0)), 0) AS refunds,
+          COALESCE(SUM(
+            CASE WHEN UPPER(COALESCE(financial_status, '')) = 'PAID'
+            THEN 1 ELSE 0 END
+          ), 0) AS paid_orders,
+          COALESCE(SUM(
+            CASE
+              WHEN UPPER(COALESCE(fulfillment_status, '')) IN (
+                'FULFILLED',
+                'PARTIALLY_FULFILLED'
+              )
+              THEN 1 ELSE 0
+            END
+          ), 0) AS fulfilled_orders,
+          COALESCE(SUM(
+            CASE WHEN UPPER(COALESCE(delivery_status, '')) = 'DELIVERED'
+            THEN 1 ELSE 0 END
+          ), 0) AS delivered_orders,
+          COALESCE(SUM(
+            CASE WHEN substr(COALESCE(created_at, ''), 1, 10) = ?
+            THEN 1 ELSE 0 END
+          ), 0) AS orders_today,
+          COALESCE(SUM(
+            CASE WHEN substr(COALESCE(created_at, ''), 1, 10) = ?
+            THEN COALESCE(item_count, 0) ELSE 0 END
+          ), 0) AS items_today
+        FROM orders
+        """,
+        (today, today),
+    ).fetchone()
+
+    recent = [
+        dict(record)
+        for record in conn.execute(
+            """
+            SELECT
+              o.*,
+              COUNT(t.id) AS total_tasks,
+              COALESCE(SUM(
+                CASE WHEN t.state = 'purchased' THEN 1 ELSE 0 END
+              ), 0) AS purchased_tasks,
+              COALESCE(SUM(
+                CASE WHEN t.state = 'failed' THEN 1 ELSE 0 END
+              ), 0) AS failed_tasks,
+              COALESCE(SUM(
+                CASE WHEN t.state = 'needs_mapping' THEN 1 ELSE 0 END
+              ), 0) AS mapping_tasks,
+              COALESCE(SUM(
+                CASE WHEN t.state = 'verification_required' THEN 1 ELSE 0 END
+              ), 0) AS verification_tasks
+            FROM orders o
+            LEFT JOIN tasks t ON t.order_id = o.id
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+            LIMIT 12
+            """
+        )
+    ]
+
+    top_products = [
+        dict(record)
+        for record in conn.execute(
+            """
+            SELECT
+              COALESCE(NULLIF(title, ''), 'Untitled product') AS title,
+              MAX(image_url) AS image_url,
+              COALESCE(SUM(quantity), 0) AS units,
+              COALESCE(SUM(quantity * price), 0) AS revenue
+            FROM line_items
+            GROUP BY title
+            ORDER BY units DESC
+            LIMIT 5
+            """
+        )
+    ]
+
+    try:
+        sync_row = conn.execute(
+            "SELECT * FROM sync_runs ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        last_sync = dict(sync_row) if sync_row else {}
+    except sqlite3.Error:
+        last_sync = {}
+
+    try:
+        worker = worker_snapshot(conn)
+    except Exception:
+        worker = {
+            "worker_online": False,
+            "status": "unavailable",
+        }
+
     conn.close()
-    data = dict(row)
-    data.update({"queue": counts.get("queued", 0), "needs_mapping": counts.get("needs_mapping", 0), "verification_required": counts.get("verification_required", 0), "purchased": counts.get("purchased", 0), "failed": counts.get("failed", 0), "processing": sum(v for k, v in counts.items() if k.startswith("processing")), "recent_orders": recent, "top_products": tops, "worker": worker, "last_sync": sync, "store_domain": SHOPIFY_STORE_DOMAIN, "shopify_configured": bool(SHOPIFY_STORE_DOMAIN and get_shopify_access_token(SHOPIFY_STORE_DOMAIN))})
+
+    data = dict(row or {})
+    data.update(
+        {
+            "queue": counts.get("queued", 0),
+            "needs_mapping": counts.get("needs_mapping", 0),
+            "verification_required": counts.get(
+                "verification_required",
+                0,
+            ),
+            "purchased": counts.get("purchased", 0),
+            "failed": counts.get("failed", 0),
+            "processing": sum(
+                count
+                for state, count in counts.items()
+                if str(state).startswith("processing")
+            ),
+            "recent_orders": recent,
+            "top_products": top_products,
+            "worker": worker,
+            "last_sync": last_sync,
+            "store_domain": SHOPIFY_STORE_DOMAIN,
+            "shopify_configured": bool(
+                SHOPIFY_STORE_DOMAIN
+                and get_shopify_access_token(SHOPIFY_STORE_DOMAIN)
+            ),
+        }
+    )
+
     return jsonify(data)
 
 
