@@ -32,6 +32,7 @@ SHOPIFY_API_VERSION = os.getenv("SHOPIFY_API_VERSION", "2025-10")
 WORKER_OFFLINE_THRESHOLD = int(os.getenv("WORKER_OFFLINE_THRESHOLD", "120"))
 SHOPIFY_SCOPES = os.getenv("SHOPIFY_SCOPES", "read_orders,read_products,read_customers,read_fulfillments,read_inventory,read_locations")
 SHOPIFY_REDIRECT_URI = os.getenv("SHOPIFY_REDIRECT_URI", "https://fulfillmentpro.up.railway.app/shopify/callback")
+PRODUCTS_JSON_PATH = os.getenv("PRODUCTS_JSON_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "products.json"))
 
 ORDER_COLUMNS = {
     "financial_status": "TEXT", "fulfillment_status": "TEXT", "delivery_status": "TEXT",
@@ -535,30 +536,6 @@ def import_catalog():
     return jsonify({"status": "imported", "count": imported})
 
 
-
-@app.after_request
-def disable_dashboard_caching(response):
-    """
-    Prevent browsers and intermediary caches from serving outdated dashboard,
-    service-worker, manifest, and API responses after a deployment.
-    """
-    path = request.path
-
-    if (
-        path == "/"
-        or path == "/index.html"
-        or path == "/sw.js"
-        or path == "/manifest.json"
-        or path.startswith("/api/")
-    ):
-        response.headers["Cache-Control"] = (
-            "no-store, no-cache, must-revalidate, max-age=0"
-        )
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
-
-    return response
-
 @app.route("/webhooks/shopify/orders-create", methods=["POST"])
 @app.route("/webhooks/shopify/orders-updated", methods=["POST"])
 @app.route("/webhooks/shopify/orders-cancelled", methods=["POST"])
@@ -671,6 +648,216 @@ def shopify_callback():
     response.delete_cookie("shopify_oauth_state")
     response.delete_cookie("shopify_oauth_shop")
     return response
+
+
+
+
+def _load_products_json_skus() -> tuple[set[str], str | None]:
+    """Return active SKU values from the repository products.json file."""
+    try:
+        with open(PRODUCTS_JSON_PATH, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        products = payload.get("products", payload) if isinstance(payload, dict) else payload
+        if not isinstance(products, list):
+            return set(), "products.json must contain a product list"
+        skus = {
+            str(product.get("sku") or "").strip().upper()
+            for product in products
+            if isinstance(product, dict)
+            and product.get("is_active", True)
+            and str(product.get("sku") or "").strip()
+        }
+        return skus, None
+    except FileNotFoundError:
+        return set(), f"products.json was not found at {PRODUCTS_JSON_PATH}"
+    except (OSError, ValueError, TypeError) as exc:
+        return set(), str(exc)
+
+
+@app.get("/api/operations/queue")
+@require_dashboard_auth
+def bot_queue_orders():
+    """
+    Return the one order currently being processed and orders waiting behind it.
+
+    Waiting orders are based only on task.state='queued'. They are not derived
+    from Shopify's unfulfilled status.
+    """
+    conn = get_db()
+
+    active_rows = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT
+              t.id task_id,
+              t.state task_state,
+              t.updated_at,
+              t.last_action,
+              t.amazon_url,
+              t.quantity,
+              o.id order_id,
+              o.shopify_order_number,
+              o.customer_name,
+              o.created_at order_created_at,
+              li.title product_name,
+              li.sku
+            FROM tasks t
+            JOIN orders o ON o.id=t.order_id
+            LEFT JOIN line_items li ON li.id=t.line_item_id
+            WHERE t.state LIKE 'processing%'
+            ORDER BY t.updated_at ASC
+            """
+        )
+    ]
+
+    waiting_rows = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT
+              t.id task_id,
+              t.state task_state,
+              t.created_at queued_at,
+              t.updated_at,
+              t.quantity,
+              o.id order_id,
+              o.shopify_order_number,
+              o.customer_name,
+              o.created_at order_created_at,
+              li.title product_name,
+              li.sku
+            FROM tasks t
+            JOIN orders o ON o.id=t.order_id
+            LEFT JOIN line_items li ON li.id=t.line_item_id
+            WHERE t.state='queued'
+            ORDER BY t.created_at ASC
+            """
+        )
+    ]
+    conn.close()
+
+    def group_by_order(rows):
+        grouped = {}
+        for row in rows:
+            order_id = row["order_id"]
+            entry = grouped.setdefault(
+                order_id,
+                {
+                    "order_id": order_id,
+                    "shopify_order_number": row.get("shopify_order_number"),
+                    "customer_name": row.get("customer_name"),
+                    "order_created_at": row.get("order_created_at"),
+                    "items": [],
+                },
+            )
+            entry["items"].append(
+                {
+                    "task_id": row.get("task_id"),
+                    "task_state": row.get("task_state"),
+                    "product_name": row.get("product_name"),
+                    "sku": row.get("sku"),
+                    "quantity": row.get("quantity"),
+                    "queued_at": row.get("queued_at"),
+                    "updated_at": row.get("updated_at"),
+                    "last_action": row.get("last_action"),
+                }
+            )
+        return list(grouped.values())
+
+    active_orders = group_by_order(active_rows)
+    waiting_orders = group_by_order(waiting_rows)
+
+    return jsonify(
+        {
+            "active_order": active_orders[0] if active_orders else None,
+            "additional_active_orders": active_orders[1:],
+            "waiting_orders": waiting_orders,
+            "waiting_order_count": len(waiting_orders),
+            "waiting_task_count": len(waiting_rows),
+            "bot_is_processing": bool(active_rows),
+        }
+    )
+
+
+@app.get("/api/operations/mapping")
+@require_dashboard_auth
+def orders_needing_product_mapping():
+    """
+    Return orders containing one or more SKUs absent from products.json.
+    """
+    catalog_skus, catalog_error = _load_products_json_skus()
+
+    conn = get_db()
+    rows = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT
+              o.id order_id,
+              o.shopify_order_number,
+              o.customer_name,
+              o.created_at,
+              o.current_total_price,
+              o.currency,
+              li.id line_item_id,
+              li.title product_name,
+              li.variant_title,
+              li.sku,
+              li.quantity,
+              li.image_url
+            FROM orders o
+            JOIN line_items li ON li.order_id=o.id
+            ORDER BY o.created_at DESC, li.id ASC
+            """
+        )
+    ]
+    conn.close()
+
+    grouped = {}
+    missing_item_count = 0
+
+    for row in rows:
+        sku = str(row.get("sku") or "").strip().upper()
+        if sku and sku in catalog_skus:
+            continue
+
+        missing_item_count += 1
+        order_id = row["order_id"]
+        order = grouped.setdefault(
+            order_id,
+            {
+                "order_id": order_id,
+                "shopify_order_number": row.get("shopify_order_number"),
+                "customer_name": row.get("customer_name"),
+                "created_at": row.get("created_at"),
+                "current_total_price": row.get("current_total_price"),
+                "currency": row.get("currency"),
+                "missing_items": [],
+            },
+        )
+        order["missing_items"].append(
+            {
+                "line_item_id": row.get("line_item_id"),
+                "product_name": row.get("product_name"),
+                "variant_title": row.get("variant_title"),
+                "sku": row.get("sku"),
+                "quantity": row.get("quantity"),
+                "image_url": row.get("image_url"),
+                "reason": "Missing SKU" if not sku else "SKU not found in products.json",
+            }
+        )
+
+    return jsonify(
+        {
+            "orders": list(grouped.values()),
+            "order_count": len(grouped),
+            "missing_item_count": missing_item_count,
+            "catalog_sku_count": len(catalog_skus),
+            "catalog_path": PRODUCTS_JSON_PATH,
+            "catalog_error": catalog_error,
+        }
+    )
 
 
 @app.get("/api/shopify/connection")
