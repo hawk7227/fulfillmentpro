@@ -32,6 +32,7 @@ SHOPIFY_API_VERSION = os.getenv("SHOPIFY_API_VERSION", "2025-10")
 WORKER_OFFLINE_THRESHOLD = int(os.getenv("WORKER_OFFLINE_THRESHOLD", "120"))
 SHOPIFY_SCOPES = os.getenv("SHOPIFY_SCOPES", "read_orders,read_products,read_customers,read_fulfillments,read_inventory,read_locations")
 SHOPIFY_REDIRECT_URI = os.getenv("SHOPIFY_REDIRECT_URI", "https://fulfillmentpro.up.railway.app/shopify/callback")
+SHOPIFY_WEBHOOK_BASE_URL = os.getenv("SHOPIFY_WEBHOOK_BASE_URL", "https://fulfillmentpro.up.railway.app").rstrip("/")
 PRODUCTS_JSON_PATH = os.getenv("PRODUCTS_JSON_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "products.json"))
 
 ORDER_COLUMNS = {
@@ -1026,6 +1027,44 @@ def shopify_status():
             "database_path": DATABASE_PATH,
         }
     )
+
+
+
+@app.post("/api/shopify/webhooks/register")
+@require_dashboard_auth
+def register_shopify_webhooks():
+    topics = {
+        "ORDERS_CREATE": f"{SHOPIFY_WEBHOOK_BASE_URL}/webhooks/shopify/orders-create",
+        "ORDERS_UPDATED": f"{SHOPIFY_WEBHOOK_BASE_URL}/webhooks/shopify/orders-updated",
+        "ORDERS_CANCELLED": f"{SHOPIFY_WEBHOOK_BASE_URL}/webhooks/shopify/orders-cancelled",
+    }
+    query = """query ExistingWebhookSubscriptions($first:Int!){webhookSubscriptions(first:$first){nodes{id topic endpoint{... on WebhookHttpEndpoint{callbackUrl}}}}}"""
+    nodes = shopify_graphql(query, {"first": 100}).get("webhookSubscriptions", {}).get("nodes", [])
+    existing = {(str(n.get("topic") or ""), str((n.get("endpoint") or {}).get("callbackUrl") or "")) for n in nodes}
+    mutation = """mutation CreateWebhook($topic:WebhookSubscriptionTopic!,$callbackUrl:URL!){webhookSubscriptionCreate(topic:$topic,webhookSubscription:{callbackUrl:$callbackUrl,format:JSON}){webhookSubscription{id topic} userErrors{field message}}}"""
+    created, already_registered, errors = [], [], []
+    for topic, callback_url in topics.items():
+        if (topic, callback_url) in existing:
+            already_registered.append({"topic": topic, "callback_url": callback_url})
+            continue
+        try:
+            result = shopify_graphql(mutation, {"topic": topic, "callbackUrl": callback_url}).get("webhookSubscriptionCreate") or {}
+            if result.get("userErrors"):
+                errors.append({"topic": topic, "errors": result["userErrors"]})
+            else:
+                created.append({"topic": topic, "callback_url": callback_url})
+        except Exception as exc:
+            errors.append({"topic": topic, "errors": [{"message": str(exc)}]})
+    return jsonify({"ok": not errors, "created": created, "already_registered": already_registered, "errors": errors}), (200 if not errors else 207)
+
+
+@app.get("/api/orders/latest")
+@require_dashboard_auth
+def latest_order():
+    conn = get_db()
+    row = conn.execute("""SELECT id,shopify_order_id,shopify_order_number,customer_name,current_total_price,total_price,currency,item_count,created_at,financial_status,fulfillment_status FROM orders ORDER BY id DESC LIMIT 1""").fetchone()
+    conn.close()
+    return jsonify({"order": dict(row) if row else None})
 
 
 @app.get("/api/shopify/connection")
