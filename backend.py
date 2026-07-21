@@ -1551,9 +1551,31 @@ def register_shopify_webhooks():
 @require_dashboard_auth
 def latest_order():
     conn = get_db()
-    row = conn.execute("""SELECT id,shopify_order_id,shopify_order_number,customer_name,current_total_price,total_price,currency,item_count,created_at,financial_status,fulfillment_status FROM orders ORDER BY id DESC LIMIT 1""").fetchone()
+    row = conn.execute("""SELECT id,shopify_order_id,shopify_order_number,customer_name,current_total_price,total_price,currency,item_count,created_at,financial_status,fulfillment_status,source_name FROM orders ORDER BY id DESC LIMIT 1""").fetchone()
+    order = dict(row) if row else None
+    if order:
+        items = [dict(item) for item in conn.execute(
+            """SELECT li.*, p.buy_price, p.sell_price
+               FROM line_items li
+               LEFT JOIN products p ON UPPER(TRIM(p.sku)) = UPPER(TRIM(li.sku))
+               WHERE li.order_id=? ORDER BY li.id LIMIT 4""",
+            (order["id"],),
+        )]
+        order["items"] = items
+        order["product_title"] = items[0].get("title") if items else None
+        order["image_url"] = items[0].get("image_url") if items else None
+        order["estimated_cost"] = sum(
+            float(item.get("buy_price") or 0) * int(item.get("quantity") or 1)
+            for item in items
+        )
+        order["estimated_profit"] = (
+            float(order.get("current_total_price") or order.get("total_price") or 0)
+            - order["estimated_cost"]
+            if order["estimated_cost"]
+            else None
+        )
     conn.close()
-    return jsonify({"order": dict(row) if row else None})
+    return jsonify({"order": order})
 
 
 
