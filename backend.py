@@ -7,6 +7,8 @@ import hmac
 import json
 import os
 import secrets
+import threading
+import time
 import sqlite3
 from datetime import datetime, timezone
 from functools import wraps
@@ -34,6 +36,9 @@ SHOPIFY_SCOPES = os.getenv("SHOPIFY_SCOPES", "read_orders,read_products,read_cus
 SHOPIFY_REDIRECT_URI = os.getenv("SHOPIFY_REDIRECT_URI", "https://fulfillmentpro.up.railway.app/shopify/callback")
 SHOPIFY_WEBHOOK_BASE_URL = os.getenv("SHOPIFY_WEBHOOK_BASE_URL", "https://fulfillmentpro.up.railway.app").rstrip("/")
 PRODUCTS_JSON_PATH = os.getenv("PRODUCTS_JSON_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "products.json"))
+QUEUE_SHOPIFY_SYNC_INTERVAL = int(os.getenv("QUEUE_SHOPIFY_SYNC_INTERVAL", "20"))
+_queue_sync_lock = threading.Lock()
+_last_queue_shopify_sync_at = 0.0
 
 ORDER_COLUMNS = {
     "financial_status": "TEXT", "fulfillment_status": "TEXT", "delivery_status": "TEXT",
@@ -67,6 +72,182 @@ def add_missing_columns(conn: sqlite3.Connection, table: str, columns: dict[str,
         if name not in existing:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
 
+
+
+def normalize_sku(value: Any) -> str:
+    """Normalize Shopify and catalog SKUs for reliable matching."""
+    return str(value or "").strip().upper()
+
+
+def load_products_json_payload() -> tuple[list[dict[str, Any]], str | None]:
+    """Load the repository-root products.json without exposing secrets."""
+    try:
+        with open(PRODUCTS_JSON_PATH, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except FileNotFoundError:
+        return [], f"products.json was not found at {PRODUCTS_JSON_PATH}"
+    except (OSError, ValueError, TypeError) as exc:
+        return [], str(exc)
+
+    products = payload.get("products", payload) if isinstance(payload, dict) else payload
+    if not isinstance(products, list):
+        return [], "products.json must contain a products list"
+
+    return [
+        product
+        for product in products
+        if isinstance(product, dict)
+    ], None
+
+
+def import_products_json_into_database(conn: sqlite3.Connection) -> dict[str, Any]:
+    """
+    Make the SQLite products table mirror the repository products.json catalog.
+
+    This is idempotent and runs during application startup and queue repair.
+    """
+    products, error = load_products_json_payload()
+    if error:
+        return {"imported": 0, "error": error}
+
+    imported = 0
+    skipped = 0
+
+    for product in products:
+        sku = normalize_sku(product.get("sku"))
+        asin = str(product.get("asin") or sku).strip()
+        amazon_url = str(product.get("amazon_url") or "").strip()
+
+        if not sku or not asin or not amazon_url:
+            skipped += 1
+            continue
+
+        conn.execute(
+            """
+            INSERT INTO products(
+              sku,
+              asin,
+              amazon_url,
+              product_name,
+              buy_price,
+              sell_price,
+              category,
+              is_active,
+              stock_status,
+              notes
+            )
+            VALUES(?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(sku) DO UPDATE SET
+              asin=excluded.asin,
+              amazon_url=excluded.amazon_url,
+              product_name=excluded.product_name,
+              buy_price=excluded.buy_price,
+              sell_price=excluded.sell_price,
+              category=excluded.category,
+              is_active=excluded.is_active,
+              stock_status=excluded.stock_status,
+              notes=excluded.notes
+            """,
+            (
+                sku,
+                asin,
+                amazon_url,
+                product.get("product_name"),
+                product.get("buy_price"),
+                product.get("sell_price"),
+                product.get("category"),
+                1 if product.get("is_active", True) else 0,
+                product.get("stock_status", "in_stock"),
+                product.get("notes", ""),
+            ),
+        )
+        imported += 1
+
+    return {
+        "imported": imported,
+        "skipped": skipped,
+        "error": None,
+    }
+
+
+def reconcile_task_mappings(conn: sqlite3.Connection) -> dict[str, int]:
+    """
+    Repair tasks after the products catalog changes.
+
+    Existing queued/processing/purchased tasks are not reset. Only tasks that
+    are currently blocked in needs_mapping are promoted when their SKU now has
+    an active catalog match.
+    """
+    repaired = 0
+    still_unmapped = 0
+
+    rows = conn.execute(
+        """
+        SELECT
+          t.id,
+          li.sku
+        FROM tasks t
+        JOIN line_items li ON li.id = t.line_item_id
+        WHERE t.state = 'needs_mapping'
+        ORDER BY t.id
+        """
+    ).fetchall()
+
+    for row in rows:
+        sku = normalize_sku(row["sku"])
+        mapped = None
+
+        if sku:
+            mapped = conn.execute(
+                """
+                SELECT asin, amazon_url
+                FROM products
+                WHERE UPPER(TRIM(sku)) = ?
+                  AND is_active = 1
+                LIMIT 1
+                """,
+                (sku,),
+            ).fetchone()
+
+        if mapped:
+            conn.execute(
+                """
+                UPDATE tasks
+                SET
+                  asin = ?,
+                  amazon_url = ?,
+                  state = 'queued',
+                  error_message = NULL,
+                  last_action = 'Catalog mapping repaired',
+                  updated_at = ?
+                WHERE id = ?
+                  AND state = 'needs_mapping'
+                """,
+                (
+                    mapped["asin"],
+                    mapped["amazon_url"],
+                    utcnow(),
+                    row["id"],
+                ),
+            )
+            repaired += 1
+        else:
+            still_unmapped += 1
+
+    return {
+        "repaired": repaired,
+        "still_unmapped": still_unmapped,
+    }
+
+
+def refresh_catalog_and_task_mappings(conn: sqlite3.Connection) -> dict[str, Any]:
+    catalog = import_products_json_into_database(conn)
+    reconciliation = reconcile_task_mappings(conn)
+    conn.commit()
+    return {
+        "catalog": catalog,
+        "reconciliation": reconciliation,
+    }
 
 def init_db() -> None:
     conn = get_db()
@@ -143,6 +324,7 @@ def init_db() -> None:
     """)
     add_missing_columns(conn, "orders", ORDER_COLUMNS)
     add_missing_columns(conn, "line_items", LINE_ITEM_COLUMNS)
+    refresh_catalog_and_task_mappings(conn)
     conn.commit()
     conn.close()
 
@@ -310,7 +492,12 @@ def upsert_order(conn: sqlite3.Connection, order: dict[str, Any], create_tasks: 
         conn.execute(f"INSERT INTO orders({','.join(fields)}) VALUES({','.join('?' for _ in fields)})", [order[f] for f in fields])
         order_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
         created = True
-    products = {r["sku"]: dict(r) for r in conn.execute("SELECT * FROM products WHERE is_active=1")}
+    products = {
+        normalize_sku(row["sku"]): dict(row)
+        for row in conn.execute(
+            "SELECT * FROM products WHERE is_active=1"
+        )
+    }
     for idx, item in enumerate(order.get("line_items") or []):
         item_id = str(item.get("legacyResourceId") or item.get("id") or idx)
         price = item.get("price")
@@ -324,10 +511,18 @@ def upsert_order(conn: sqlite3.Connection, order: dict[str, Any], create_tasks: 
           VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(order_id,shopify_line_item_id) DO UPDATE SET title=excluded.title,variant_title=excluded.variant_title,sku=excluded.sku,quantity=excluded.quantity,price=excluded.price,shopify_product_id=excluded.shopify_product_id,shopify_variant_id=excluded.shopify_variant_id,image_url=excluded.image_url,vendor=excluded.vendor""", values)
         line_id = conn.execute("SELECT id FROM line_items WHERE order_id=? AND shopify_line_item_id=?", (order_id, item_id)).fetchone()[0]
         if create_tasks:
-            sku = str(item.get("sku") or "").strip()
+            sku = normalize_sku(item.get("sku"))
             mapped = products.get(sku)
             state = "queued" if mapped else "needs_mapping"
-            error = None if mapped else ("No SKU provided" if not sku else f"ASIN {sku} not in catalog")
+            error = (
+                None
+                if mapped
+                else (
+                    "No SKU provided"
+                    if not sku
+                    else f"SKU {sku} not in products.json catalog"
+                )
+            )
             conn.execute("""INSERT OR IGNORE INTO tasks(unique_key,order_id,line_item_id,asin,amazon_url,quantity,state,error_message,created_at,updated_at)
               VALUES(?,?,?,?,?,?,?,?,?,?)""", (f'{order["shopify_order_id"]}:{item_id}', order_id, line_id, sku or None, mapped.get("amazon_url") if mapped else None, int(item.get("quantity") or 1), state, error, utcnow(), utcnow()))
     return order_id, created
@@ -378,6 +573,68 @@ def sync_shopify_orders(search_query: str | None = None, max_pages: int = 25) ->
     finally:
         conn.close()
 
+
+
+def maybe_sync_shopify_for_worker() -> dict[str, Any]:
+    """
+    Check Shopify when the worker queue is empty.
+
+    The worker still consumes only queued tasks. This fallback merely ensures
+    a new Shopify order is imported and converted into a task without requiring
+    the dashboard to be open or a manual Sync Shopify click.
+    """
+    global _last_queue_shopify_sync_at
+
+    now = time.monotonic()
+    if now - _last_queue_shopify_sync_at < QUEUE_SHOPIFY_SYNC_INTERVAL:
+        return {"attempted": False, "reason": "throttled"}
+
+    if not _queue_sync_lock.acquire(blocking=False):
+        return {"attempted": False, "reason": "already_running"}
+
+    try:
+        now = time.monotonic()
+        if now - _last_queue_shopify_sync_at < QUEUE_SHOPIFY_SYNC_INTERVAL:
+            return {"attempted": False, "reason": "throttled"}
+
+        _last_queue_shopify_sync_at = now
+
+        try:
+            result = sync_shopify_orders(max_pages=1)
+            return {
+                "attempted": True,
+                "ok": True,
+                "result": result,
+            }
+        except Exception as exc:
+            app.logger.exception(
+                "Worker-triggered Shopify sync failed"
+            )
+            return {
+                "attempted": True,
+                "ok": False,
+                "error": str(exc),
+            }
+    finally:
+        _queue_sync_lock.release()
+
+
+def get_next_queued_task(conn: sqlite3.Connection):
+    return conn.execute(
+        """
+        SELECT
+          t.*,
+          o.shopify_order_id,
+          o.shopify_order_number,
+          o.customer_name,
+          o.shipping_address
+        FROM tasks t
+        JOIN orders o ON o.id = t.order_id
+        WHERE t.state = 'queued'
+        ORDER BY t.created_at, t.id
+        LIMIT 1
+        """
+    ).fetchone()
 
 def worker_snapshot(conn: sqlite3.Connection) -> dict[str, Any]:
     row = dict(conn.execute("SELECT * FROM worker_status WHERE id=1").fetchone())
@@ -707,15 +964,62 @@ def order_webhook():
 @require_worker_auth
 def next_task():
     conn = get_db()
-    task = conn.execute("""SELECT t.*,o.shopify_order_id,o.shopify_order_number,o.customer_name,o.shipping_address FROM tasks t JOIN orders o ON o.id=t.order_id WHERE t.state='queued' ORDER BY t.created_at LIMIT 1""").fetchone()
+    refresh_catalog_and_task_mappings(conn)
+    task = get_next_queued_task(conn)
+
+    sync_result = None
+
     if not task:
         conn.close()
-        return jsonify({"task": None})
-    conn.execute("UPDATE tasks SET state='processing_opened_url',updated_at=?,last_action='Worker pulled task' WHERE id=?", (utcnow(), task["id"]))
+        sync_result = maybe_sync_shopify_for_worker()
+
+        conn = get_db()
+        refresh_catalog_and_task_mappings(conn)
+        task = get_next_queued_task(conn)
+
+    if not task:
+        diagnostics = {
+            row["state"]: int(row["count"] or 0)
+            for row in conn.execute(
+                """
+                SELECT state, COUNT(*) AS count
+                FROM tasks
+                GROUP BY state
+                """
+            )
+        }
+        conn.close()
+
+        return jsonify(
+            {
+                "task": None,
+                "queue_counts": diagnostics,
+                "shopify_sync": sync_result,
+            }
+        )
+
+    conn.execute(
+        """
+        UPDATE tasks
+        SET
+          state = 'processing_opened_url',
+          updated_at = ?,
+          last_action = 'Worker pulled task'
+        WHERE id = ?
+          AND state = 'queued'
+        """,
+        (utcnow(), task["id"]),
+    )
     conn.commit()
     result = dict(task)
     conn.close()
-    return jsonify({"task": result})
+
+    return jsonify(
+        {
+            "task": result,
+            "shopify_sync": sync_result,
+        }
+    )
 
 
 @app.post("/api/queue/<int:task_id>/update")
@@ -1065,6 +1369,121 @@ def latest_order():
     row = conn.execute("""SELECT id,shopify_order_id,shopify_order_number,customer_name,current_total_price,total_price,currency,item_count,created_at,financial_status,fulfillment_status FROM orders ORDER BY id DESC LIMIT 1""").fetchone()
     conn.close()
     return jsonify({"order": dict(row) if row else None})
+
+
+
+
+
+@app.get("/api/worker/pipeline-status")
+@require_worker_auth
+def worker_pipeline_status():
+    conn = get_db()
+    catalog_result = refresh_catalog_and_task_mappings(conn)
+
+    task_counts = {
+        row["state"]: int(row["count"] or 0)
+        for row in conn.execute(
+            """
+            SELECT state, COUNT(*) AS count
+            FROM tasks
+            GROUP BY state
+            ORDER BY state
+            """
+        )
+    }
+
+    latest_order = conn.execute(
+        """
+        SELECT
+          id,
+          shopify_order_number,
+          customer_name,
+          created_at
+        FROM orders
+        ORDER BY id DESC
+        LIMIT 1
+        """
+    ).fetchone()
+
+    latest_tasks = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT
+              t.id,
+              t.state,
+              t.asin,
+              t.amazon_url,
+              t.error_message,
+              li.sku,
+              li.title,
+              o.shopify_order_number
+            FROM tasks t
+            JOIN line_items li ON li.id = t.line_item_id
+            JOIN orders o ON o.id = t.order_id
+            ORDER BY t.id DESC
+            LIMIT 10
+            """
+        )
+    ]
+
+    product_count = int(
+        conn.execute(
+            "SELECT COUNT(*) AS count FROM products WHERE is_active=1"
+        ).fetchone()["count"]
+        or 0
+    )
+    conn.close()
+
+    return jsonify(
+        {
+            "products_json_path": PRODUCTS_JSON_PATH,
+            "active_catalog_products": product_count,
+            "catalog_refresh": catalog_result,
+            "task_counts": task_counts,
+            "latest_order": dict(latest_order) if latest_order else None,
+            "latest_tasks": latest_tasks,
+        }
+    )
+
+
+@app.post("/api/catalog/repair-tasks")
+@require_dashboard_auth
+def repair_catalog_tasks():
+    conn = get_db()
+    result = refresh_catalog_and_task_mappings(conn)
+    conn.close()
+    return jsonify(
+        {
+            "ok": True,
+            **result,
+        }
+    )
+
+
+@app.get("/api/worker/auth-check")
+@require_worker_auth
+def worker_auth_check():
+    return jsonify({"ok": True, "service": "FulfillmentPro worker API", "timestamp": utcnow()})
+
+
+@app.post("/api/shopify/live-sync")
+@require_dashboard_auth
+def live_shopify_sync():
+    before_conn = get_db()
+    before_id = int(before_conn.execute("SELECT COALESCE(MAX(id),0) AS latest_id FROM orders").fetchone()["latest_id"] or 0)
+    before_conn.close()
+
+    result = sync_shopify_orders(max_pages=1)
+
+    after_conn = get_db()
+    new_orders = [dict(row) for row in after_conn.execute(
+        """SELECT id,shopify_order_id,shopify_order_number,customer_name,current_total_price,total_price,currency,item_count,created_at,financial_status,fulfillment_status
+           FROM orders WHERE id>? ORDER BY id ASC""",
+        (before_id,)
+    )]
+    after_conn.close()
+    return jsonify({**result, "new_orders": new_orders, "new_order_count": len(new_orders)})
 
 
 @app.get("/api/shopify/connection")
