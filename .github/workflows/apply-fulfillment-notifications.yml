@@ -1,0 +1,54 @@
+name: Apply Fulfillment Notifications
+
+on:
+  push:
+    branches:
+      - feature/mobile-fulfillment-notifications
+    paths:
+      - static/js/fulfillment-notifications.js
+      - static/css/fulfillment-notifications.css
+      - static/notifications.html
+      - tools/apply_notification_system.py
+      - .github/workflows/apply-fulfillment-notifications.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out notification branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/mobile-fulfillment-notifications
+          fetch-depth: 0
+
+      - name: Apply isolated notification integration
+        run: python tools/apply_notification_system.py
+
+      - name: Validate Python syntax
+        run: python -m py_compile backend.py tools/apply_notification_system.py
+
+      - name: Validate required notification assets
+        run: |
+          test -f static/js/fulfillment-notifications.js
+          test -f static/css/fulfillment-notifications.css
+          test -f static/notifications.html
+          grep -q 'fulfillment-notifications.css' static/index.html
+          grep -q 'fulfillment-notifications.js' static/index.html
+          grep -q 'FulfillmentNotifications.notify(order)' static/index.html
+          grep -q 'estimated_profit' backend.py
+
+      - name: Commit only notification integration changes
+        run: |
+          if git diff --quiet -- backend.py static/index.html; then
+            echo "Notification integration already applied."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend.py static/index.html
+          git commit -m "Wire production fulfillment notifications"
+          git push origin HEAD:feature/mobile-fulfillment-notifications
