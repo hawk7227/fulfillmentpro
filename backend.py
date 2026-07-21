@@ -249,6 +249,25 @@ def refresh_catalog_and_task_mappings(conn: sqlite3.Connection) -> dict[str, Any
         "reconciliation": reconciliation,
     }
 
+def ensure_worker_runtime_columns(conn: sqlite3.Connection) -> None:
+    existing = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(worker_status)")
+    }
+    definitions = {
+        "current_task_id": "INTEGER",
+        "current_order_number": "TEXT",
+        "current_customer_name": "TEXT",
+        "current_product_name": "TEXT",
+        "current_task_state": "TEXT",
+        "current_task_started_at": "TEXT",
+    }
+    for name, definition in definitions.items():
+        if name not in existing:
+            conn.execute(
+                f"ALTER TABLE worker_status ADD COLUMN {name} {definition}"
+            )
+
 def init_db() -> None:
     conn = get_db()
     conn.executescript("""
@@ -324,6 +343,7 @@ def init_db() -> None:
     """)
     add_missing_columns(conn, "orders", ORDER_COLUMNS)
     add_missing_columns(conn, "line_items", LINE_ITEM_COLUMNS)
+    ensure_worker_runtime_columns(conn)
     refresh_catalog_and_task_mappings(conn)
     conn.commit()
     conn.close()
@@ -637,14 +657,92 @@ def get_next_queued_task(conn: sqlite3.Connection):
     ).fetchone()
 
 def worker_snapshot(conn: sqlite3.Connection) -> dict[str, Any]:
-    row = dict(conn.execute("SELECT * FROM worker_status WHERE id=1").fetchone())
+    raw = conn.execute(
+        "SELECT * FROM worker_status WHERE id=1"
+    ).fetchone()
+    row = dict(raw) if raw else {}
+
     online = False
+    heartbeat_age_seconds = None
+
     if row.get("last_heartbeat_at"):
         try:
-            online = (datetime.now(timezone.utc) - datetime.fromisoformat(row["last_heartbeat_at"].replace("Z", "+00:00"))).total_seconds() < WORKER_OFFLINE_THRESHOLD
-        except ValueError:
-            pass
-    return {**row, "worker_online": online}
+            heartbeat_time = datetime.fromisoformat(
+                str(row["last_heartbeat_at"]).replace("Z", "+00:00")
+            )
+            heartbeat_age_seconds = max(
+                0,
+                int(
+                    (
+                        datetime.now(timezone.utc) - heartbeat_time
+                    ).total_seconds()
+                ),
+            )
+            online = heartbeat_age_seconds < WORKER_OFFLINE_THRESHOLD
+        except (ValueError, TypeError):
+            online = False
+
+    current_task = None
+    current_task_id = row.get("current_task_id")
+
+    if current_task_id:
+        task_row = conn.execute(
+            """
+            SELECT
+              t.id AS task_id,
+              t.state AS task_state,
+              t.updated_at,
+              t.last_action,
+              t.quantity,
+              o.id AS order_id,
+              o.shopify_order_number,
+              o.customer_name,
+              li.title AS product_name,
+              li.sku
+            FROM tasks t
+            JOIN orders o ON o.id=t.order_id
+            LEFT JOIN line_items li ON li.id=t.line_item_id
+            WHERE t.id=?
+            LIMIT 1
+            """,
+            (current_task_id,),
+        ).fetchone()
+
+        if task_row:
+            current_task = dict(task_row)
+
+    if current_task is None:
+        task_row = conn.execute(
+            """
+            SELECT
+              t.id AS task_id,
+              t.state AS task_state,
+              t.updated_at,
+              t.last_action,
+              t.quantity,
+              o.id AS order_id,
+              o.shopify_order_number,
+              o.customer_name,
+              li.title AS product_name,
+              li.sku
+            FROM tasks t
+            JOIN orders o ON o.id=t.order_id
+            LEFT JOIN line_items li ON li.id=t.line_item_id
+            WHERE lower(t.state) LIKE 'processing%'
+            ORDER BY t.updated_at DESC, t.id DESC
+            LIMIT 1
+            """
+        ).fetchone()
+
+        if task_row:
+            current_task = dict(task_row)
+
+    return {
+        **row,
+        "worker_online": online,
+        "heartbeat_age_seconds": heartbeat_age_seconds,
+        "current_task": current_task,
+    }
 
 
 @app.get("/health")
@@ -1041,10 +1139,84 @@ def update_task(task_id: int):
 def heartbeat():
     body = request.get_json(silent=True) or {}
     conn = get_db()
-    conn.execute("UPDATE worker_status SET is_online=1,last_heartbeat_at=?,last_action=?,last_error=? WHERE id=1", (utcnow(), body.get("action", "Heartbeat"), body.get("error")))
+
+    task_id = body.get("task_id")
+    clear_current_task = bool(body.get("clear_current_task"))
+
+    if clear_current_task:
+        conn.execute(
+            """
+            UPDATE worker_status
+            SET
+              is_online=1,
+              last_heartbeat_at=?,
+              last_action=?,
+              last_error=?,
+              current_task_id=NULL,
+              current_order_number=NULL,
+              current_customer_name=NULL,
+              current_product_name=NULL,
+              current_task_state=NULL,
+              current_task_started_at=NULL
+            WHERE id=1
+            """,
+            (
+                utcnow(),
+                body.get("action", "Worker idle"),
+                body.get("error"),
+            ),
+        )
+    else:
+        conn.execute(
+            """
+            UPDATE worker_status
+            SET
+              is_online=1,
+              last_heartbeat_at=?,
+              last_action=?,
+              last_error=?,
+              current_task_id=COALESCE(?, current_task_id),
+              current_order_number=COALESCE(?, current_order_number),
+              current_customer_name=COALESCE(?, current_customer_name),
+              current_product_name=COALESCE(?, current_product_name),
+              current_task_state=COALESCE(?, current_task_state),
+              current_task_started_at=CASE
+                WHEN ? IS NOT NULL
+                  AND (
+                    current_task_id IS NULL
+                    OR current_task_id != ?
+                  )
+                THEN ?
+                ELSE current_task_started_at
+              END
+            WHERE id=1
+            """,
+            (
+                utcnow(),
+                body.get("action", "Heartbeat"),
+                body.get("error"),
+                task_id,
+                body.get("order_number"),
+                body.get("customer_name"),
+                body.get("product_name"),
+                body.get("task_state"),
+                task_id,
+                task_id,
+                utcnow(),
+            ),
+        )
+
     conn.commit()
+    worker = worker_snapshot(conn)
     conn.close()
-    return jsonify({"status": "ok"})
+
+    return jsonify(
+        {
+            "status": "ok",
+            "worker_online": worker.get("worker_online"),
+            "current_task": worker.get("current_task"),
+        }
+    )
 
 
 @app.get("/shopify/install")
@@ -1133,39 +1305,14 @@ def _load_repository_product_skus() -> tuple[set[str], str | None]:
 @require_dashboard_auth
 def bot_queue_orders():
     """
-    Return actual fulfillment-bot work states.
-
-    - active_order: task rows whose state begins with "processing"
-    - waiting_orders: task rows whose state is exactly "queued"
-
-    This endpoint never derives the queue from Shopify fulfillment status.
+    Return one source of truth for:
+    - worker online/offline;
+    - current task;
+    - next queued order;
+    - remaining queued orders.
     """
     conn = get_db()
-
-    active_rows = [
-        dict(row)
-        for row in conn.execute(
-            """
-            SELECT
-              t.id AS task_id,
-              t.state AS task_state,
-              t.updated_at,
-              t.last_action,
-              t.quantity,
-              o.id AS order_id,
-              o.shopify_order_number,
-              o.customer_name,
-              o.created_at AS order_created_at,
-              li.title AS product_name,
-              li.sku
-            FROM tasks t
-            JOIN orders o ON o.id = t.order_id
-            LEFT JOIN line_items li ON li.id = t.line_item_id
-            WHERE lower(t.state) LIKE 'processing%'
-            ORDER BY t.updated_at ASC, t.id ASC
-            """
-        )
-    ]
+    worker = worker_snapshot(conn)
 
     waiting_rows = [
         dict(row)
@@ -1184,14 +1331,13 @@ def bot_queue_orders():
               li.title AS product_name,
               li.sku
             FROM tasks t
-            JOIN orders o ON o.id = t.order_id
-            LEFT JOIN line_items li ON li.id = t.line_item_id
-            WHERE lower(t.state) = 'queued'
+            JOIN orders o ON o.id=t.order_id
+            LEFT JOIN line_items li ON li.id=t.line_item_id
+            WHERE lower(t.state)='queued'
             ORDER BY t.created_at ASC, t.id ASC
             """
         )
     ]
-    conn.close()
 
     def group_orders(rows):
         grouped = {}
@@ -1201,9 +1347,13 @@ def bot_queue_orders():
                 order_id,
                 {
                     "order_id": order_id,
-                    "shopify_order_number": row.get("shopify_order_number"),
+                    "shopify_order_number": row.get(
+                        "shopify_order_number"
+                    ),
                     "customer_name": row.get("customer_name"),
-                    "order_created_at": row.get("order_created_at"),
+                    "order_created_at": row.get(
+                        "order_created_at"
+                    ),
                     "items": [],
                 },
             )
@@ -1216,22 +1366,57 @@ def bot_queue_orders():
                     "quantity": row.get("quantity"),
                     "queued_at": row.get("queued_at"),
                     "updated_at": row.get("updated_at"),
-                    "last_action": row.get("last_action"),
                 }
             )
         return list(grouped.values())
 
-    active_orders = group_orders(active_rows)
     waiting_orders = group_orders(waiting_rows)
+    current_task = worker.get("current_task")
+
+    current_order = None
+    if current_task:
+        current_order = {
+            "order_id": current_task.get("order_id"),
+            "shopify_order_number": current_task.get(
+                "shopify_order_number"
+            ),
+            "customer_name": current_task.get("customer_name"),
+            "items": [
+                {
+                    "task_id": current_task.get("task_id"),
+                    "task_state": current_task.get(
+                        "task_state"
+                    ),
+                    "product_name": current_task.get(
+                        "product_name"
+                    ),
+                    "sku": current_task.get("sku"),
+                    "quantity": current_task.get("quantity"),
+                    "updated_at": current_task.get(
+                        "updated_at"
+                    ),
+                    "last_action": current_task.get(
+                        "last_action"
+                    ),
+                }
+            ],
+        }
+
+    next_order = waiting_orders[0] if waiting_orders else None
+
+    conn.close()
 
     return jsonify(
         {
-            "active_order": active_orders[0] if active_orders else None,
-            "additional_active_orders": active_orders[1:],
+            "worker": worker,
+            "worker_online": bool(worker.get("worker_online")),
+            "current_order": current_order,
+            "active_order": current_order,
+            "next_order": next_order,
             "waiting_orders": waiting_orders,
             "waiting_order_count": len(waiting_orders),
             "waiting_task_count": len(waiting_rows),
-            "bot_is_processing": bool(active_rows),
+            "bot_is_processing": bool(current_order),
         }
     )
 
