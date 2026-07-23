@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from live_bridge import app
+import notification_extension  # noqa: F401,E402
 
 
 @app.after_request
