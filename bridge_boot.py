@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from live_bridge import app
+import notification_extension  # noqa: F401,E402
 
 
 @app.after_request
@@ -13,10 +14,13 @@ def inject_live_bridge_script(response):
         and not response.direct_passthrough
     ):
         body = response.get_data(as_text=True)
-        marker = '<script src="/js/live-bridge.js"></script>'
-        if marker not in body and "</body>" in body:
-            body = body.replace("</body>", f"{marker}</body>")
-            response.set_data(body)
-            response.headers["Content-Length"] = str(len(response.get_data()))
+        style_marker = '<link rel="stylesheet" href="/css/fulfillment-notifications-live.css">'
+        script_marker = '<script src="/js/live-bridge.js"></script>'
+        if style_marker not in body and "</head>" in body:
+            body = body.replace("</head>", f"{style_marker}</head>")
+        if script_marker not in body and "</body>" in body:
+            body = body.replace("</body>", f"{script_marker}</body>")
+        response.set_data(body)
+        response.headers["Content-Length"] = str(len(response.get_data()))
 
     return response

@@ -1,0 +1,19 @@
+name: Notification Validation
+on:
+  pull_request:
+    paths:
+      - 'notification_extension.py'
+      - 'bridge_boot.py'
+      - 'static/js/fulfillment-notifications.js'
+      - 'static/css/fulfillment-notifications-live.css'
+      - '.github/workflows/notification-validation.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m py_compile backend.py live_bridge.py bridge_boot.py notification_extension.py
+      - run: node --check static/js/fulfillment-notifications.js
