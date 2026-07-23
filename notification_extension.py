@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sqlite3
 from typing import Any
 
 from flask import jsonify, request
@@ -64,13 +65,15 @@ def _init() -> None:
 
 def emit(event_type: str, *, event_key: str | None = None, order_id: int | None = None,
          task_id: int | None = None, title: str | None = None, message: str | None = None,
-         metadata: dict[str, Any] | None = None, resolve_order: bool = False) -> None:
+         metadata: dict[str, Any] | None = None, resolve_order: bool = False,
+         conn: sqlite3.Connection | None = None) -> None:
     spec = EVENTS.get(event_type, {"severity": "info", "title": "Fulfillment update", "attention": False, "href": "/queue.html"})
     payload = metadata or {}
     key = event_key or hashlib.sha256(json.dumps({"type": event_type, "order": order_id, "task": task_id, "payload": payload}, sort_keys=True, default=str).encode()).hexdigest()
     now = backend.utcnow()
-    conn = backend.get_db()
-    conn.execute(
+    owns_connection = conn is None
+    active = conn or backend.get_db()
+    active.execute(
         """INSERT INTO notification_events(event_key,event_type,severity,title,message,order_id,task_id,href,metadata,requires_attention,created_at,updated_at)
            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
            ON CONFLICT(event_key) DO UPDATE SET title=excluded.title,message=excluded.message,metadata=excluded.metadata,updated_at=excluded.updated_at""",
@@ -78,12 +81,13 @@ def emit(event_type: str, *, event_key: str | None = None, order_id: int | None 
          f"{spec['href']}{'?order='+str(order_id) if order_id else ''}", json.dumps(payload, default=str), int(spec["attention"]), now, now),
     )
     if resolve_order and order_id:
-        conn.execute("UPDATE notification_events SET resolved_at=?,updated_at=? WHERE order_id=? AND event_type='order_placed' AND resolved_at IS NULL", (now, now, order_id))
-    conn.commit()
-    conn.close()
+        active.execute("UPDATE notification_events SET resolved_at=?,updated_at=? WHERE order_id=? AND event_type='order_placed' AND resolved_at IS NULL", (now, now, order_id))
+    if owns_connection:
+        active.commit()
+        active.close()
 
 
-def _order_context(conn, order_id: int) -> dict[str, Any]:
+def _order_context(conn: sqlite3.Connection, order_id: int) -> dict[str, Any]:
     row = conn.execute("SELECT id,shopify_order_number,customer_name,current_total_price,total_price,currency,item_count,created_at,fulfillment_status,cancelled_at FROM orders WHERE id=?", (order_id,)).fetchone()
     return dict(row) if row else {"id": order_id}
 
@@ -91,25 +95,25 @@ def _order_context(conn, order_id: int) -> dict[str, Any]:
 _original_upsert_order = backend.upsert_order
 
 
-def _upsert_order_with_notifications(conn, order: dict[str, Any], create_tasks: bool = True):
+def _upsert_order_with_notifications(conn: sqlite3.Connection, order: dict[str, Any], create_tasks: bool = True):
     order_id, created = _original_upsert_order(conn, order, create_tasks=create_tasks)
     context = _order_context(conn, order_id)
     if created:
         emit("order_placed", event_key=f"order:{order.get('shopify_order_id')}:created", order_id=order_id,
-             message=f"Order #{context.get('shopify_order_number') or order_id} from {context.get('customer_name') or 'Customer'} was received.", metadata=context)
+             message=f"Order #{context.get('shopify_order_number') or order_id} from {context.get('customer_name') or 'Customer'} was received.", metadata=context, conn=conn)
     elif order.get("cancelled_at"):
         emit("order_cancelled", event_key=f"order:{order.get('shopify_order_id')}:cancelled", order_id=order_id,
-             message=f"Order #{context.get('shopify_order_number') or order_id} was cancelled.", metadata=context, resolve_order=True)
+             message=f"Order #{context.get('shopify_order_number') or order_id} was cancelled.", metadata=context, resolve_order=True, conn=conn)
     elif str(order.get("fulfillment_status") or "").upper() in {"FULFILLED", "SUCCESS"}:
         emit("fulfillment_succeeded", event_key=f"order:{order.get('shopify_order_id')}:fulfilled", order_id=order_id,
-             message=f"Order #{context.get('shopify_order_number') or order_id} was fulfilled successfully.", metadata=context, resolve_order=True)
+             message=f"Order #{context.get('shopify_order_number') or order_id} was fulfilled successfully.", metadata=context, resolve_order=True, conn=conn)
     return order_id, created
 
 
 backend.upsert_order = _upsert_order_with_notifications
 
 
-def _task_event(state: str, body: dict[str, Any], task_id: int) -> tuple[str, bool] | None:
+def _task_event(state: str, body: dict[str, Any]) -> tuple[str, bool] | None:
     normalized = state.lower()
     if normalized == "verification_required": return "verification_required", False
     if normalized == "needs_mapping": return "mapping_required", False
@@ -131,17 +135,18 @@ def capture_worker_notification(response):
         body = request.get_json(silent=True) or {}
         state = str(body.get("state") or "")
         task_id = int(match.group(1))
-        event = _task_event(state, body, task_id)
+        event = _task_event(state, body)
         if event:
             conn = backend.get_db()
             row = conn.execute("SELECT t.order_id,o.shopify_order_number,li.title product_name FROM tasks t LEFT JOIN orders o ON o.id=t.order_id LEFT JOIN line_items li ON li.id=t.line_item_id WHERE t.id=?", (task_id,)).fetchone()
-            conn.close()
             context = dict(row) if row else {}
             event_type, resolve = event
             emit(event_type, event_key=f"task:{task_id}:{state}:{body.get('amazon_order_id') or body.get('last_action') or ''}",
                  order_id=context.get("order_id"), task_id=task_id,
                  message=body.get("error_message") or body.get("last_action") or f"{EVENTS[event_type]['title']} for order #{context.get('shopify_order_number') or context.get('order_id') or ''}.",
-                 metadata={**context, **body}, resolve_order=resolve)
+                 metadata={**context, **body}, resolve_order=resolve, conn=conn)
+            conn.commit()
+            conn.close()
     return response
 
 
@@ -159,15 +164,15 @@ def notification_events():
     sql += " ORDER BY created_at DESC LIMIT ?"
     params.append(limit)
     rows = [dict(row) for row in conn.execute(sql, params)]
-    summary = dict(conn.execute("""SELECT COUNT(*) FILTER (WHERE read_at IS NULL AND resolved_at IS NULL) unread_total,
-      COUNT(*) FILTER (WHERE event_type='order_placed' AND read_at IS NULL AND resolved_at IS NULL) unread_new_orders,
-      COUNT(*) FILTER (WHERE severity='critical' AND resolved_at IS NULL) open_critical,
+    summary = dict(conn.execute("""SELECT SUM(CASE WHEN read_at IS NULL AND resolved_at IS NULL THEN 1 ELSE 0 END) unread_total,
+      SUM(CASE WHEN event_type='order_placed' AND read_at IS NULL AND resolved_at IS NULL THEN 1 ELSE 0 END) unread_new_orders,
+      SUM(CASE WHEN severity='critical' AND resolved_at IS NULL THEN 1 ELSE 0 END) open_critical,
       MAX(created_at) latest_event_at FROM notification_events""").fetchone())
     conn.close()
     for row in rows:
         try: row["metadata"] = json.loads(row.get("metadata") or "{}")
         except ValueError: row["metadata"] = {}
-    return jsonify({"events": rows, "summary": summary})
+    return jsonify({"events": rows, "summary": {key: value or 0 for key, value in summary.items()}})
 
 
 @app.post("/api/notifications/events/action")
