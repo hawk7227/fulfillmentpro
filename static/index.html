@@ -1,0 +1,801 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#06111f"><title>FulfillmentPro Command Center</title><link rel="manifest" href="/manifest.json"><link rel="stylesheet" href="/css/fulfillment-notifications.css"><style>
+:root{--bg:#050d18;--panel:#091729;--panel2:#0d1e33;--text:#f5f8ff;--muted:#91a2ba;--line:#17314f;--blue:#2583ff;--green:#28d77d;--yellow:#ffbf27;--red:#ff5364;--purple:#9870ff;--cyan:#20d3d3;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}button,input{font:inherit}.app{min-height:100dvh;display:grid;grid-template-columns:240px minmax(0,1fr);grid-template-rows:72px 1fr}.topbar{grid-column:1/-1;display:flex;align-items:center;gap:24px;padding:12px 24px;border-bottom:1px solid var(--line);background:#06111f;position:sticky;top:0;z-index:20}.brand{display:flex;align-items:center;gap:12px;min-width:216px}.logo{width:42px;height:42px;border:2px solid var(--blue);display:grid;place-items:center;transform:rotate(30deg);border-radius:10px}.logo span{transform:rotate(-30deg);font-weight:700;color:var(--cyan)}.brand strong{font-size:1.25rem;line-height:1.2}.brand strong b{color:var(--blue)}.brand small{display:block;color:var(--muted);font-size:.75rem;line-height:1.4}.search{flex:1;max-width:760px}.search input{width:100%;height:44px;border:1px solid var(--line);background:#081729;color:var(--text);border-radius:12px;padding:0 16px;outline:none}.search input:focus{outline:2px solid var(--blue);outline-offset:2px}.top-actions{margin-left:auto;display:flex;gap:8px}.primary,.secondary,.icon{min-height:44px;min-width:44px;border:0;border-radius:12px;cursor:pointer}.primary{background:var(--blue);color:#fff;padding:0 18px}.secondary,.icon{background:var(--panel2);color:var(--text);padding:0 14px}.sidebar{padding:16px 16px calc(24px + env(safe-area-inset-bottom));border-right:1px solid var(--line);background:#06111f;display:flex;flex-direction:column;gap:8px}.nav{display:flex;flex-direction:column;gap:4px}.nav button{min-height:44px;border:0;border-radius:10px;background:transparent;color:#c9d5e5;text-align:left;padding:0 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}.nav button.active{background:#123663;color:#fff;box-shadow:inset 3px 0 var(--blue)}.count{min-width:28px;padding:4px 8px;border-radius:999px;background:#13233a;text-align:center;font-size:.75rem}.connection,.system-card{margin-top:16px;background:var(--panel);border-radius:14px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,.2)}.system-card{margin-top:auto}.online{color:var(--green)}.main{min-width:0;padding:24px;overflow:auto}.heading-row{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px}.heading-row h1{font-size:1.6rem;line-height:1.2;margin:0;font-weight:500}.heading-row p{margin:6px 0 0;color:var(--muted);line-height:1.6}.metrics{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:12px;margin-bottom:16px}.metric{background:var(--panel);border-radius:14px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,.24);min-height:144px;display:flex;flex-direction:column}.metric label{color:var(--muted);font-size:.8rem}.metric strong{font-size:1.75rem;font-weight:500;margin-top:16px}.metric small{margin-top:auto;color:var(--muted)}.metric.blue{box-shadow:inset 0 0 0 1px #17416f}.metric.green{box-shadow:inset 0 0 0 1px #14563c}.metric.yellow{box-shadow:inset 0 0 0 1px #5b4914}.metric.purple{box-shadow:inset 0 0 0 1px #3c2c6a}.metric.red{box-shadow:inset 0 0 0 1px #5d2431}.metric.cyan{box-shadow:inset 0 0 0 1px #13545c}.content-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px}.stack{display:flex;flex-direction:column;gap:16px}.card{background:var(--panel);border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.24);overflow:hidden}.card-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px}.card-head h2,.side-card h3{font-size:1rem;font-weight:500;margin:0}.link{color:#55a6ff;background:transparent;border:0;cursor:pointer;min-height:44px}.progress-wrap{padding:0 18px 18px}.progress{height:12px;border-radius:999px;background:#11233b;overflow:hidden;display:flex}.seg{height:100%}.legend{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:16px}.legend div{font-size:.78rem;color:var(--muted)}.legend b{display:block;color:var(--text);font-weight:500;margin-top:4px}.table-wrap{overflow-x:auto;scrollbar-width:none}.table-wrap::-webkit-scrollbar{display:none}.orders-table{width:100%;border-collapse:collapse;min-width:980px}.orders-table th,.orders-table td{text-align:left;padding:12px 14px;border-top:1px solid #10263f;font-size:.8rem}.orders-table th{color:var(--muted);font-weight:400}.orders-table tbody tr{cursor:pointer}.orders-table tbody tr:hover{background:#0d2138}.badge{display:inline-flex;align-items:center;min-height:28px;padding:4px 10px;border-radius:8px;font-size:.75rem;background:#11233b}.badge.green{color:#53eb9a;background:#0d3328}.badge.yellow{color:#ffd15a;background:#3a3010}.badge.red{color:#ff8c98;background:#3c1820}.badge.blue{color:#70b3ff;background:#102d50}.badge.purple{color:#c5abff;background:#271d47}.side-card{padding:16px}.side-card h3{margin-bottom:14px}.summary-list{display:grid;gap:10px}.summary-row{display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem}.summary-row b{color:var(--text);font-weight:500}.donut{width:104px;height:104px;border-radius:50%;margin:8px auto 16px;display:grid;place-items:center;background:conic-gradient(var(--green) var(--pct),#12263e 0);position:relative}.donut:after{content:"";width:72px;height:72px;border-radius:50%;background:var(--panel);position:absolute}.donut span{z-index:1;font-size:1.25rem}.products{display:grid;gap:10px}.product{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center}.product img{width:40px;height:40px;object-fit:cover;border-radius:8px;background:#13233a}.product p{margin:0;font-size:.8rem;overflow-wrap:anywhere}.product small,.empty{color:var(--muted)}.empty{padding:32px;text-align:center}.overlay{display:none}.modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.65)}.modal.open{display:flex}.modal-box{width:min(480px,100%);background:var(--panel2);border-radius:16px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.5)}.field{display:grid;gap:8px;margin:16px 0}.field input{height:48px;border:0;border-radius:12px;background:#071526;color:#fff;padding:0 14px;outline:none}.field input:focus{outline:2px solid var(--blue);outline-offset:2px}.error{color:#ff9ca7;min-height:24px}.toast{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:60;background:#0e2239;padding:14px 18px;border-radius:12px;display:none}.toast.show{display:block}.mobile-menu{display:none}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.detail-item{background:#071526;border-radius:12px;padding:14px}.detail-item small{color:var(--muted)}
+@media(max-width:1180px){.metrics{grid-template-columns:repeat(3,1fr)}.content-grid{grid-template-columns:1fr}.right-stack{display:grid;grid-template-columns:repeat(2,1fr)}}@media(max-width:767px){.app{display:block}.topbar{height:auto;padding:12px 16px;gap:12px}.brand{min-width:0}.brand small,.search{display:none}.top-actions{margin-left:auto}.mobile-menu{display:inline-grid;place-items:center}.sidebar{position:fixed;z-index:40;top:0;left:0;width:280px;height:100dvh;transform:translateX(-100%);transition:transform 200ms ease;overflow:auto}.sidebar.open{transform:translateX(0)}.overlay{display:block;position:fixed;z-index:35;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity 200ms ease}.overlay.open{opacity:1;pointer-events:auto}.main{padding:16px 16px calc(96px + env(safe-area-inset-bottom))}.heading-row{align-items:flex-start}.metrics{grid-template-columns:1fr}.right-stack{grid-template-columns:1fr;margin-top:16px}.legend{grid-template-columns:1fr 1fr}.top-actions .secondary{display:none}.detail-grid{grid-template-columns:1fr}}
+
+/* =========================================================
+   MOBILE COMMAND CENTER — approved mobile layout
+   Desktop remains unchanged.
+   ========================================================= */
+.mobile-dashboard{display:none}
+.mobile-bottom-nav{display:none}
+
+@media(max-width:767px){
+  html,body{background:#04101d;overflow-x:hidden}
+  body{min-height:100dvh}
+  .app{display:block;min-height:100dvh;background:
+    radial-gradient(circle at 82% 4%,rgba(37,131,255,.14),transparent 32%),
+    linear-gradient(180deg,#061320 0%,#04101d 100%)}
+
+  .topbar{
+    position:sticky;top:0;z-index:30;
+    min-height:74px;height:74px;padding:10px 14px;
+    gap:10px;background:rgba(4,15,27,.96);
+    backdrop-filter:blur(18px);
+    border-bottom:1px solid rgba(71,143,229,.18)
+  }
+  .mobile-menu{
+    display:grid;place-items:center;
+    width:42px;height:42px;min-width:42px;
+    border:1px solid #173a61;border-radius:12px;
+    background:#0a1c31
+  }
+  .brand{gap:9px;min-width:0}
+  .logo{width:38px;height:38px;border-radius:10px}
+  .brand strong{font-size:1.03rem;white-space:nowrap}
+  .brand small,.search,.top-actions .secondary{display:none}
+  .top-actions{margin-left:auto}
+  .top-actions .primary{
+    min-height:42px;height:42px;
+    padding:0 14px;border-radius:12px;
+    font-size:.82rem;font-weight:700;
+    box-shadow:0 8px 20px rgba(37,131,255,.28)
+  }
+
+  .sidebar{
+    position:fixed;z-index:50;top:0;left:0;
+    width:min(84vw,300px);height:100dvh;
+    transform:translateX(-102%);transition:transform .2s ease;
+    overflow:auto;padding-top:max(18px,env(safe-area-inset-top));
+    box-shadow:24px 0 60px rgba(0,0,0,.48)
+  }
+  .sidebar.open{transform:translateX(0)}
+  .overlay{
+    display:block;position:fixed;z-index:45;inset:0;
+    background:rgba(0,0,0,.62);opacity:0;
+    pointer-events:none;transition:opacity .2s ease
+  }
+  .overlay.open{opacity:1;pointer-events:auto}
+
+  .main{
+    padding:0 14px calc(82px + env(safe-area-inset-bottom));
+    overflow:visible
+  }
+  .heading-row,.metrics,.content-grid{display:none!important}
+  .mobile-dashboard{display:block;padding-top:14px}
+
+  .mobile-hero{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    gap:10px;margin-bottom:14px
+  }
+  .mobile-hero h1{
+    margin:0;font-size:1.44rem;line-height:1.12;
+    letter-spacing:-.03em;font-weight:750
+  }
+  .mobile-hero p{
+    margin:7px 0 0;color:#8fa4bd;
+    font-size:.84rem;line-height:1.35
+  }
+  .mobile-view-shopify{
+    flex:0 0 auto;min-height:38px;padding:0 12px;
+    border:1px solid rgba(73,150,255,.45);
+    border-radius:11px;background:#0b2c53;
+    color:#8fc2ff;font-weight:700;font-size:.75rem
+  }
+
+  .mobile-shopify-strip{
+    display:flex;align-items:center;gap:8px;
+    min-height:40px;margin-bottom:12px;padding:0 12px;
+    border:1px solid rgba(34,211,136,.25);
+    border-radius:12px;background:rgba(8,32,43,.82);
+    color:#b9cadc;font-size:.76rem
+  }
+  .mobile-shopify-strip .shopify-mark{
+    display:grid;place-items:center;width:23px;height:23px;
+    border-radius:7px;background:#113b2b;color:#36df8a;
+    font-size:.78rem;font-weight:800
+  }
+  .mobile-shopify-strip .mobile-live-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:#29df88;box-shadow:0 0 0 5px rgba(41,223,136,.12)
+  }
+  .mobile-shopify-strip .mobile-store{
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+  }
+  .mobile-shopify-strip .mobile-live-label{
+    margin-left:auto;color:#35df8a;font-weight:700
+  }
+
+  .mobile-metrics{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;margin-bottom:11px
+  }
+  .mobile-metric{
+    position:relative;min-height:146px;padding:13px;
+    border-radius:16px;background:
+      linear-gradient(145deg,rgba(13,35,61,.96),rgba(6,20,35,.98));
+    border:1px solid #174571;
+    box-shadow:0 10px 24px rgba(0,0,0,.22);
+    overflow:hidden
+  }
+  .mobile-metric:after{
+    content:"";position:absolute;right:-28px;bottom:-35px;
+    width:100px;height:100px;border-radius:50%;
+    background:radial-gradient(circle,rgba(44,133,255,.13),transparent 67%)
+  }
+  .mobile-metric.green{border-color:#176047}
+  .mobile-metric.orange{border-color:#815211}
+  .mobile-metric.purple{border-color:#60439a}
+  .mobile-metric-head{
+    display:flex;align-items:center;gap:8px;
+    min-height:28px;margin-bottom:9px
+  }
+  .mobile-icon{
+    display:grid;place-items:center;width:30px;height:30px;
+    border-radius:9px;background:rgba(28,104,208,.18);
+    color:#49a0ff;font-size:1rem
+  }
+  .mobile-metric.green .mobile-icon{background:rgba(27,184,111,.15);color:#31dc8b}
+  .mobile-metric.orange .mobile-icon{background:rgba(255,164,26,.15);color:#ffad2e}
+  .mobile-metric.purple .mobile-icon{background:rgba(153,103,255,.16);color:#ad7bff}
+  .mobile-metric label{
+    color:#b4c3d5;font-size:.72rem;line-height:1.15
+  }
+  .mobile-metric strong{
+    display:block;margin:0 0 7px;
+    font-size:1.72rem;line-height:1;
+    letter-spacing:-.04em;font-weight:720
+  }
+  .mobile-metric small{
+    display:block;color:#8298b1;
+    font-size:.67rem;line-height:1.2
+  }
+  .mobile-metric .mobile-alert{
+    display:inline-flex;align-items:center;
+    margin-top:8px;padding:4px 7px;border-radius:999px;
+    background:rgba(255,164,26,.1);color:#ffb033;
+    font-size:.63rem;font-weight:700
+  }
+
+  .mobile-progress-card{
+    display:grid;grid-template-columns:48px minmax(0,1fr) auto;
+    align-items:center;gap:11px;
+    padding:12px 13px;margin-bottom:11px;
+    border:1px solid #173c64;border-radius:15px;
+    background:linear-gradient(145deg,#0a2038,#071726)
+  }
+  .mobile-ring{
+    --mobile-pct:0deg;
+    width:48px;height:48px;border-radius:50%;
+    display:grid;place-items:center;
+    background:conic-gradient(#2a84ff var(--mobile-pct),#172d46 0)
+  }
+  .mobile-ring:before{
+    content:"";width:36px;height:36px;border-radius:50%;
+    background:#091a2c
+  }
+  .mobile-ring b{
+    position:absolute;font-size:.69rem
+  }
+  .mobile-progress-copy b{
+    display:block;font-size:.82rem;margin-bottom:3px
+  }
+  .mobile-progress-copy span{
+    display:block;color:#8fa4bd;font-size:.68rem;margin-bottom:7px
+  }
+  .mobile-progress-bar{
+    height:6px;border-radius:999px;background:#152b44;overflow:hidden
+  }
+  .mobile-progress-bar i{
+    display:block;height:100%;width:0;border-radius:inherit;
+    background:linear-gradient(90deg,#1f72ee,#39a4ff)
+  }
+  .mobile-progress-percent{
+    color:#48a2ff;font-size:1rem;font-weight:750
+  }
+
+  .mobile-recent{
+    border:1px solid #173651;border-radius:15px;
+    background:linear-gradient(145deg,#091b2f,#061522);
+    overflow:hidden
+  }
+  .mobile-recent-head{
+    display:flex;align-items:center;justify-content:space-between;
+    min-height:42px;padding:0 12px;border-bottom:1px solid #132c46
+  }
+  .mobile-recent-head h2{margin:0;font-size:.87rem}
+  .mobile-recent-head button{
+    border:0;background:transparent;color:#55a6ff;
+    font-size:.7rem;font-weight:700
+  }
+  .mobile-order-list{padding:3px 9px 7px}
+  .mobile-order{
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;gap:8px;min-height:42px;padding:6px 3px;
+    border-bottom:1px solid rgba(22,52,81,.72);
+    cursor:pointer
+  }
+  .mobile-order:last-child{border-bottom:0}
+  .mobile-order-main{min-width:0}
+  .mobile-order-main b{
+    display:block;font-size:.76rem;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis
+  }
+  .mobile-order-main small{
+    display:block;margin-top:3px;color:#849ab3;font-size:.62rem;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  }
+  .mobile-order-side{text-align:right}
+  .mobile-order-side strong{display:block;font-size:.73rem}
+  .mobile-order-side span{
+    display:inline-block;margin-top:3px;padding:3px 6px;
+    border-radius:999px;background:#123a2c;color:#34dc87;
+    font-size:.57rem;font-weight:700
+  }
+  .mobile-order-side span.warning{
+    background:#3d2c0c;color:#ffb32e
+  }
+  .mobile-empty{
+    padding:17px 12px;text-align:center;color:#8399b1;font-size:.72rem
+  }
+
+  .mobile-bottom-nav{
+    display:grid;
+    position:fixed;z-index:28;left:0;right:0;bottom:0;
+    display:grid;grid-template-columns:repeat(4,1fr);
+    min-height:64px;padding:5px 8px calc(5px + env(safe-area-inset-bottom));
+    border-top:1px solid rgba(51,105,160,.28);
+    background:rgba(4,16,29,.96);backdrop-filter:blur(18px)
+  }
+  .mobile-bottom-nav a{text-decoration:none;
+    border:0;background:transparent;color:#7e94ad;
+    display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;font-size:.59rem
+  }
+  .mobile-bottom-nav a b{font-size:1rem;line-height:1}
+  .mobile-bottom-nav a.active{color:#4c9fff}
+
+  .auth-card{width:min(90vw,420px)}
+  .detail-grid{grid-template-columns:1fr}
+}
+
+@media(max-width:380px){
+  .main{padding-left:10px;padding-right:10px}
+  .topbar{padding-left:10px;padding-right:10px}
+  .brand strong{font-size:.93rem}
+  .top-actions .primary{padding:0 10px;font-size:.75rem}
+  .mobile-metric{min-height:139px;padding:11px}
+  .mobile-metric strong{font-size:1.52rem}
+}
+
+
+.live-system-card{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:11px 13px;border:1px solid #173d63;border-radius:14px;background:linear-gradient(145deg,#0a2037,#061522)}
+.live-system-card .status-dot{width:11px;height:11px;border-radius:50%;background:#ff5f64;box-shadow:0 0 0 5px rgba(255,95,100,.1)}
+.live-system-card.online .status-dot{background:#28df87;box-shadow:0 0 0 5px rgba(40,223,135,.11)}
+.live-system-copy{min-width:0;flex:1}.live-system-copy b{display:block;font-size:.78rem}.live-system-copy small{display:block;margin-top:3px;color:#879db5;font-size:.62rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-system-state{font-size:.64rem;font-weight:800;text-transform:uppercase;color:#ff8589}.live-system-card.online .live-system-state{color:#35df8d}
+.order-popup{position:fixed;z-index:100;right:18px;top:88px;width:min(380px,calc(100vw - 28px));transform:translateX(calc(100% + 30px));opacity:0;pointer-events:none;border:1px solid #2a78c8;border-radius:16px;background:linear-gradient(145deg,#0c2745,#071827);box-shadow:0 22px 70px rgba(0,0,0,.55);transition:.24s;overflow:hidden}
+.order-popup.show{transform:translateX(0);opacity:1;pointer-events:auto}
+.order-popup-head{display:flex;align-items:center;gap:9px;padding:12px 13px;border-bottom:1px solid rgba(55,121,187,.3)}
+.order-popup-icon{display:grid;place-items:center;width:35px;height:35px;border-radius:11px;background:#113c69;color:#55a8ff;font-size:1.1rem}
+.order-popup-head div{min-width:0;flex:1}.order-popup-head b{display:block;font-size:.82rem}.order-popup-head small{display:block;color:#91a9c1;font-size:.62rem;margin-top:2px}
+.order-popup-close{border:0;background:transparent;color:#8ea4bb;font-size:1rem}
+.order-popup-body{padding:12px 13px}.order-popup-body strong{display:block;font-size:1rem}.order-popup-body p{margin:5px 0 0;color:#9cb1c8;font-size:.7rem;line-height:1.4}
+.order-popup-actions{display:flex;gap:8px;padding:0 13px 13px}.order-popup-actions button{flex:1;min-height:38px;border-radius:10px;font-weight:750;font-size:.7rem}
+.order-popup-view{border:0;background:#2f89ff;color:#fff}.order-popup-dismiss{border:1px solid #244d76;background:#0a1e33;color:#a9bed3}
+@media(max-width:767px){.order-popup{right:14px;top:82px}}
+
+
+.sidebar-shopify-card{margin:14px 12px;padding:12px;border:1px solid #173e64;border-radius:14px;background:linear-gradient(145deg,#0a2037,#061522)}
+.sidebar-shopify-head{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:9px}
+.sidebar-shopify-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#123d2d;color:#35df8d;font-weight:800}
+.sidebar-shopify-head b{display:block;font-size:.75rem}.sidebar-shopify-head small{display:block;margin-top:2px;color:#869db5;font-size:.59rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar-shopify-state{color:#35df8d;font-size:.58rem;font-weight:800;text-transform:uppercase}
+.sidebar-shopify-actions{display:grid;gap:7px;margin-top:10px}
+.sidebar-shopify-actions button{min-height:34px;border-radius:9px;border:1px solid #214d78;background:#0a1d31;color:#b9d4ef;font-size:.63rem;font-weight:750}
+.sidebar-shopify-actions button:first-child{border:0;background:#277fdc;color:#fff}
+@media(min-width:768px){
+  .main{padding-top:20px}
+  .heading-row{margin-bottom:18px}
+  .heading-row h1{font-size:1.72rem;letter-spacing:-.035em;margin-bottom:4px}
+  .heading-row p{max-width:620px;color:#91a5bb;font-size:.86rem}
+  .metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+  .metrics .metric{min-height:132px;padding:15px;border-radius:15px}
+  .metrics .metric:nth-child(n+5){display:none}
+  .content-grid{grid-template-columns:minmax(0,1.55fr) minmax(280px,.8fr);gap:14px}
+  .sidebar{background:linear-gradient(180deg,#071423 0%,#06111d 100%)}
+  .topbar{border-bottom:1px solid rgba(71,127,183,.2)}
+}
+@media(max-width:767px){
+  /* Mobile-only cleanup: keep desktop dashboard sections available on desktop. */
+  .mobile-progress-card,
+  .recent-orders-only,
+  .dashboard-backup,
+  .sidebar .connection,
+  .sidebar .sidebar-shopify-card{display:none!important}
+}
+
+@media(max-width:767px){
+  .mobile-dashboard{padding-top:10px}
+  .mobile-hero{margin-bottom:12px;padding:2px 2px 0}
+  .mobile-eyebrow{display:block;margin-bottom:6px;color:#5ea9ff;font-size:.58rem;font-weight:800;letter-spacing:.09em}
+  .mobile-hero h1{font-size:1.34rem;line-height:1.08}
+  .mobile-hero p{max-width:290px;font-size:.76rem;line-height:1.35}
+  .mobile-metrics{gap:9px}
+  .mobile-metric{min-height:132px;padding:12px}
+  .mobile-metric-head{margin-bottom:7px}
+  .mobile-metric strong{font-size:1.55rem}
+  .mobile-progress-card,.live-system-card{margin-bottom:10px}
+  .mobile-recent{margin-bottom:4px}
+}
+
+
+
+/* Mobile drawer refinement — desktop styles remain unchanged. */
+@media(max-width:767px){
+  #sidebar.sidebar{
+    width:min(86vw,320px);padding:0 14px max(18px,env(safe-area-inset-bottom));
+    gap:12px;background:linear-gradient(180deg,#061321 0%,#04101c 100%);
+    border-right:1px solid #1b395a;box-shadow:24px 0 60px rgba(0,0,0,.58)
+  }
+  .mobile-sidebar-brand{
+    display:flex;align-items:center;gap:11px;min-height:76px;margin:0 -14px 2px;padding:12px 16px;
+    border-bottom:1px solid #17314f;background:#06111f
+  }
+  .mobile-sidebar-brand .mobile-sidebar-logo{
+    width:42px;height:42px;border:2px solid var(--blue);border-radius:11px;display:grid;place-items:center;
+    transform:rotate(30deg);color:var(--cyan);font-weight:800
+  }
+  .mobile-sidebar-brand .mobile-sidebar-logo span{transform:rotate(-30deg)}
+  .mobile-sidebar-brand strong{display:block;font-size:1rem;line-height:1.15}
+  .mobile-sidebar-brand strong b{color:var(--blue)}
+  .mobile-sidebar-brand small{display:block;margin-top:4px;color:#8ea3bc;font-size:.68rem}
+  #sidebar .desktop-nav-links{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+  #sidebar .desktop-nav-link{
+    min-height:54px;border:1px solid #173b61;border-radius:12px;background:linear-gradient(145deg,#0b2037,#08182a);
+    color:#eef5ff;text-decoration:none;padding:0 13px;display:flex;align-items:center;justify-content:space-between;
+    font-size:.9rem;box-shadow:0 6px 18px rgba(0,0,0,.16)
+  }
+  #sidebar .desktop-nav-link::after{content:"→";margin-left:10px;color:#6e9bc8;font-size:1rem}
+  #sidebar .desktop-nav-link .count{margin-left:auto;margin-right:8px;background:#122943;color:#ddecff}
+  #sidebar .connection,#sidebar .system-card{
+    margin-top:4px;border:1px solid rgba(46,91,137,.22);background:#09192b;box-shadow:0 8px 22px rgba(0,0,0,.2)
+  }
+  #sidebar .connection p{overflow-wrap:anywhere;line-height:1.45}
+  #sidebar .system-card{margin-top:auto}
+  #sidebar .sidebar-shopify-card{display:none!important}
+  .desktop-hidden-bindings{display:none!important}
+}
+@media(min-width:768px){.mobile-sidebar-brand{display:none}}
+
+/* Desktop dashboard simplification: keep legacy sections in DOM as a restorable backup. */
+@media(min-width:768px){
+  .desktop-nav-links{display:flex;flex-direction:column;gap:8px}
+  .desktop-nav-link{min-height:52px;border:1px solid #17314f;border-radius:10px;background:#091729;color:#c9d5e5;text-decoration:none;padding:0 12px;display:flex;align-items:center;justify-content:space-between}
+  .desktop-nav-link:hover,.desktop-nav-link:focus-visible{background:#10253e;color:#fff;border-color:#275b91;outline:none}
+  .desktop-nav-link::after{content:"→";color:#6f8dab}
+  .desktop-hidden-bindings,.dashboard-backup{display:none!important}
+  .recent-orders-only{display:block}
+  .recent-orders-only .card{width:100%}
+}
+</style></head><body>
+<div id="overlay" class="overlay"></div><div class="app"><header class="topbar"><button id="menuBtn" class="icon mobile-menu" aria-label="Open navigation">☰</button><div class="brand"><div class="logo"><span>FP</span></div><div><strong>Fulfillment <b>Pro</b></strong><small>AI fulfillment command center</small></div></div><div class="search"><input id="search" aria-label="Search orders" placeholder="Search orders, customers, tracking…"></div><div class="top-actions"><button id="refreshBtn" class="secondary">Refresh</button><button id="syncBtn" class="primary">Sync Shopify</button></div></header>
+<aside id="sidebar" class="sidebar"><div class="mobile-sidebar-brand" aria-label="FulfillmentPro navigation"><div class="mobile-sidebar-logo"><span>FP</span></div><div><strong>Fulfillment <b>Pro</b></strong><small>AI fulfillment command center</small></div></div><nav class="desktop-nav-links" aria-label="Primary navigation">
+<a class="desktop-nav-link" href="/orders.html">Orders <span id="navTotal" class="count">0</span></a>
+<a class="desktop-nav-link" href="/queue.html">Fulfillment Queue <span id="navQueue" class="count">0</span></a>
+<a class="desktop-nav-link" href="/mapping.html">Needs Mapping <span id="navMapping" class="count">0</span></a>
+<span class="desktop-hidden-bindings" aria-hidden="true"><span id="navVerify"></span><span id="navPurchased"></span><span id="navFailed"></span></span>
+</nav><div class="connection"><b>Shopify</b><p id="storeDomain">Not configured</p><span id="shopifyState" class="badge yellow">Check settings</span></div><div class="system-card"><div id="workerDot">● System status</div><p id="workerText">Checking worker…</p><small id="lastSync">No Shopify sync recorded</small></div>
+<section class="sidebar-shopify-card">
+  <div class="sidebar-shopify-head">
+    <div class="sidebar-shopify-icon">S</div>
+    <div>
+      <b>Shopify Store</b>
+      <small id="sidebarShopifyDomain">Connecting…</small>
+    </div>
+    <span id="sidebarShopifyState" class="sidebar-shopify-state">Live</span>
+  </div>
+  <div class="sidebar-shopify-actions">
+    <button id="sidebarSyncShopify">Sync orders</button>
+    <button id="sidebarViewShopify">Open Shopify</button>
+  </div>
+</section>
+
+</aside>
+<main class="main">
+<section class="mobile-dashboard" aria-label="Mobile fulfillment dashboard">
+  <div class="mobile-hero">
+  <div>
+    <span class="mobile-eyebrow">FULFILLMENT OVERVIEW</span>
+    <h1>Welcome back,<br>Marcus! 👋</h1>
+    <p>Everything that needs your attention, in one place.</p>
+  </div>
+</div>
+
+  
+<section id="mobileWorkerCard" class="live-system-card">
+  <span class="status-dot"></span>
+  <div class="live-system-copy"><b>Fulfillment Bot</b><small id="mobileWorkerAction">Checking worker connection…</small></div>
+  <span id="mobileWorkerState" class="live-system-state">Offline</span>
+</section>
+
+<section class="mobile-metrics">
+    <article class="mobile-metric">
+      <div class="mobile-metric-head"><span class="mobile-icon">🛒</span><label>Total Orders</label></div>
+      <strong id="mobileTotal">0</strong>
+      <small>Imported from Shopify</small>
+    </article>
+
+    <article class="mobile-metric green">
+      <div class="mobile-metric-head"><span class="mobile-icon">📦</span><label>Unfulfilled Orders</label></div>
+      <strong id="mobileUnfulfilled">0</strong>
+      <small id="mobileUnfulfilledRate">0% of total</small>
+    </article>
+
+    <article class="mobile-metric orange">
+      <div class="mobile-metric-head"><span class="mobile-icon">🏷</span><label>Orders Needing Mapping</label></div>
+      <strong id="mobileMapping">0</strong>
+      <small>Requires attention</small>
+      <span id="mobileMappingAlert" class="mobile-alert">No action needed</span>
+    </article>
+
+    <article class="mobile-metric purple">
+      <div class="mobile-metric-head"><span class="mobile-icon">$</span><label>Revenue</label></div>
+      <strong id="mobileRevenue">$0.00</strong>
+      <small>Current Shopify total</small>
+    </article>
+  </section>
+
+  <section class="mobile-progress-card">
+    <div id="mobileRing" class="mobile-ring"><b id="mobileRate">0%</b></div>
+    <div class="mobile-progress-copy">
+      <b>Fulfillment Progress</b>
+      <span id="mobileProgressText">0 of 0 orders fulfilled</span>
+      <div class="mobile-progress-bar"><i id="mobileProgressFill"></i></div>
+    </div>
+    <div id="mobileProgressPercent" class="mobile-progress-percent">0%</div>
+  </section>
+
+  <section class="mobile-recent">
+    <div class="mobile-recent-head">
+      <h2>Recent Orders</h2>
+      <button id="mobileViewAllOrders">View all</button>
+    </div>
+    <div id="mobileOrders" class="mobile-order-list">
+      <div class="mobile-empty">Orders will appear after Shopify sync.</div>
+    </div>
+  </section>
+</section>
+
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+  <a class="active" href="/"><b>⌂</b><span>Home</span></a>
+  <a href="/orders.html"><b>☷</b><span>Orders</span></a>
+  <a href="/queue.html"><b>▣</b><span>Queue</span></a>
+  <a href="/mapping.html"><b>!</b><span>Mapping</span></a>
+</nav>
+<div class="heading-row"><div><h1>Welcome back, Marcus! 👋</h1><p>Live Shopify orders and fulfillment operations.</p></div><button id="viewShopify" class="primary">View Shopify</button></div>
+<section class="metrics">
+<article class="metric blue"><label>Total Orders</label><strong id="mTotal">0</strong><small>Imported from Shopify</small></article>
+<article class="metric green"><label>Unfulfilled Orders</label><strong id="mPaid">0</strong><small id="paidRate">0% of total</small></article>
+<article class="metric yellow"><label>Orders Needing Mapping</label><strong id="mFulfilled">0</strong><small id="fulfilledRate">Requires attention</small></article>
+<article class="metric purple"><label>Revenue</label><strong id="mDelivered">$0.00</strong><small id="deliveredRate">Current Shopify total</small></article>
+</section>
+<div class="recent-orders-only">
+<section class="card"><div class="card-head"><h2>Recent Orders</h2><button class="link" data-status="ALL">View all orders →</button></div><div class="table-wrap"><table class="orders-table"><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Channel</th><th>Total</th><th>Payment</th><th>Fulfillment</th><th>Delivery</th><th>Items</th><th>Tracking</th></tr></thead><tbody id="ordersBody"></tbody></table></div><div id="ordersEmpty" class="empty" hidden>No orders have been imported. Use Sync Shopify to import existing orders.</div></section>
+</div>
+
+<!-- Hidden, restorable desktop dashboard sections. Remove the dashboard-backup class to restore them. -->
+<div class="dashboard-backup" aria-hidden="true">
+<section class="card"><div class="card-head"><h2>Orders Overview</h2><button class="link" data-status="ALL">View all orders →</button></div><div class="progress-wrap"><div id="progress" class="progress"></div><div id="legend" class="legend"></div></div></section>
+<aside class="stack right-stack"><section class="card side-card"><h3>Shopify Store</h3><div id="storeStatus" class="summary-list"></div></section><section class="card side-card"><h3>Today's Summary</h3><div class="summary-list"><div class="summary-row"><span>Orders Today</span><b id="todayOrders">0</b></div><div class="summary-row"><span>Items Ordered</span><b id="todayItems">0</b></div><div class="summary-row"><span>Queue</span><b id="todayQueue">0</b></div><div class="summary-row"><span>Needs Attention</span><b id="todayAttention">0</b></div></div></section><section class="card side-card"><h3>Fulfillment Performance</h3><div id="donut" class="donut" style="--pct:0deg"><span id="donutText">0%</span></div><div class="summary-list"><div class="summary-row"><span>Purchased</span><b id="perfPurchased">0</b></div><div class="summary-row"><span>Unfulfilled</span><b id="perfUnfulfilled">0</b></div><div class="summary-row"><span>Failed</span><b id="perfFailed">0</b></div></div></section><section class="card side-card"><h3>Top Selling Products</h3><div id="topProducts" class="products"></div></section></aside>
+</div></main></div>
+
+<div id="newOrderPopup" class="order-popup" role="alert" aria-live="assertive">
+  <div class="order-popup-head"><span class="order-popup-icon">🛍</span><div><b>New Shopify order received</b><small id="newOrderPopupTime">Just now</small></div><button id="newOrderPopupClose" class="order-popup-close">×</button></div>
+  <div class="order-popup-body"><strong id="newOrderPopupTitle">New order</strong><p id="newOrderPopupDetails">The order was added to FulfillmentPro.</p></div>
+  <div class="order-popup-actions"><button id="newOrderPopupView" class="order-popup-view">View order</button><button id="newOrderPopupDismiss" class="order-popup-dismiss">Dismiss</button></div>
+</div>
+
+<div id="authModal" class="modal"><div class="modal-box"><h2>Owner access</h2><p>Enter the dashboard token. It stays in this browser session only.</p><form id="authForm"><label class="field">Dashboard token<input id="tokenInput" type="password" autocomplete="current-password" required></label><div id="authError" class="error" role="alert"></div><button class="primary" type="submit">Open dashboard</button></form></div></div>
+<div id="detailModal" class="modal"><div class="modal-box"><div class="card-head"><h2 id="detailTitle">Order details</h2><button id="closeDetail" class="icon">×</button></div><div id="detailBody"></div></div></div><div id="toast" class="toast" role="status"></div>
+<script>
+const state={token:sessionStorage.getItem('fulfillmentpro.dashboard.token')||'',data:null,status:'',search:'',timer:null};const $=id=>document.getElementById(id);const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+function headers(){return {'Authorization':'Bearer '+state.token,'Content-Type':'application/json'}}async function api(path,options={}){const r=await fetch(path,{...options,headers:{...headers(),...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(r.status===401){showAuth();throw new Error('Owner authentication required')}if(!r.ok)throw new Error(d.error||'Request failed');return d}function money(v,c='USD'){return new Intl.NumberFormat(undefined,{style:'currency',currency:c||'USD'}).format(Number(v||0))}function pct(v,t){return t?Math.round(v/t*100):0}function dateText(v){if(!v)return'—';const d=new Date(v);return Number.isNaN(d.valueOf())?'—':d.toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}function badge(v){const text=String(v||'—').replaceAll('_',' ');let color='blue';if(/paid|fulfilled|delivered|purchased|success/i.test(text))color='green';else if(/unfulfilled|queued|mapping|pending|partial/i.test(text))color='yellow';else if(/failed|cancel|refund/i.test(text))color='red';else if(/verify|processing|transit/i.test(text))color='purple';return `<span class="badge ${color}">${esc(text)}</span>`}function toast(m){$('toast').textContent=m;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),3000)}function showAuth(e=''){$('authModal').classList.add('open');$('authError').textContent=e;$('tokenInput').focus()}function hideAuth(){$('authModal').classList.remove('open')}
+async function verifyToken(){await api('/api/auth/check',{method:'POST'});sessionStorage.setItem('fulfillmentpro.dashboard.token',state.token);hideAuth();await refresh();await startLiveDashboard()}$('authForm').addEventListener('submit',async e=>{e.preventDefault();state.token=$('tokenInput').value.trim();try{await verifyToken()}catch(x){showAuth(x.message)}})
+
+function refreshSidebarShopify(data){
+  const domain=data?.store_domain||'br1xzv-gd.myshopify.com';
+  const connected=Boolean(data?.shopify_configured);
+  if($('sidebarShopifyDomain'))$('sidebarShopifyDomain').textContent=domain;
+  if($('sidebarShopifyState')){
+    $('sidebarShopifyState').textContent=connected?'Live':'Connect';
+    $('sidebarShopifyState').style.color=connected?'#35df8d':'#ffb135';
+  }
+}
+
+function render(d){state.data=d;refreshSidebarShopify(d);if(d.worker)applyUnifiedWorkerStatus(d.worker);const total=d.total_orders||0,c=(d.recent_orders?.[0]?.currency)||'USD';
+const mobileUnfulfilled=Math.max(total-(d.fulfilled_orders||0),0);
+const mobileRate=pct(d.fulfilled_orders,total);
+const mobileSet=(id,value)=>{const el=$(id);if(el)el.textContent=value};
+mobileSet('mobileTotal',total);
+mobileSet('mobileUnfulfilled',mobileUnfulfilled);
+mobileSet('mobileUnfulfilledRate',pct(mobileUnfulfilled,total)+'% of total');
+mobileSet('mobileMapping',d.needs_mapping||0);
+mobileSet('mobileRevenue',money(d.revenue,c));
+mobileSet('mobileStore',d.store_domain||'Shopify not configured');
+mobileSet('mobileShopifyState',d.shopify_configured?'Live':'Connect');
+mobileSet('mobileRate',mobileRate+'%');
+mobileSet('mobileProgressPercent',mobileRate+'%');
+mobileSet('mobileProgressText',(d.fulfilled_orders||0)+' of '+total+' orders fulfilled');
+const mobileRing=$('mobileRing');if(mobileRing)mobileRing.style.setProperty('--mobile-pct',(mobileRate*3.6)+'deg');
+const mobileFill=$('mobileProgressFill');if(mobileFill)mobileFill.style.width=mobileRate+'%';
+const mappingAlert=$('mobileMappingAlert');
+if(mappingAlert){
+  mappingAlert.textContent=(d.needs_mapping||0)>0?'Needs action':'No action needed';
+  mappingAlert.style.opacity=(d.needs_mapping||0)>0?'1':'.72';
+}
+renderMobileOrders(d.recent_orders||[]);
+$('mTotal').textContent=total;$('mPaid').textContent=mobileUnfulfilled;$('mFulfilled').textContent=d.needs_mapping||0;$('mDelivered').textContent=money(d.revenue,c);$('paidRate').textContent=pct(mobileUnfulfilled,total)+'% of total';$('fulfilledRate').textContent=(d.needs_mapping||0)>0?'Requires attention':'No action needed';$('deliveredRate').textContent='Current Shopify total';$('navTotal').textContent=total;$('navQueue').textContent=d.queue||0;$('navMapping').textContent=d.needs_mapping||0;$('navVerify').textContent=d.verification_required||0;$('navPurchased').textContent=d.purchased||0;$('navFailed').textContent=d.failed||0;$('storeDomain').textContent=d.store_domain||'Not configured';$('shopifyState').textContent=d.shopify_configured?'Connected':'Connect required';$('shopifyState').className='badge '+(d.shopify_configured?'green':'yellow');$('syncBtn').textContent=d.shopify_configured?'Sync Shopify':'Connect Shopify';$('workerText').textContent=d.worker.worker_online?'Automation worker online':'Automation worker offline';$('workerDot').className=d.worker.worker_online?'online':'';$('lastSync').textContent=d.last_sync?.completed_at?'Last sync '+dateText(d.last_sync.completed_at):'No Shopify sync recorded';$('todayOrders').textContent=d.orders_today||0;$('todayItems').textContent=d.items_today||0;$('todayQueue').textContent=d.queue||0;$('todayAttention').textContent=(d.needs_mapping||0)+(d.verification_required||0)+(d.failed||0);$('perfPurchased').textContent=d.purchased||0;$('perfFailed').textContent=d.failed||0;$('perfUnfulfilled').textContent=Math.max(total-(d.fulfilled_orders||0),0);const rate=pct(d.fulfilled_orders,total);$('donut').style.setProperty('--pct',(rate*3.6)+'deg');$('donutText').textContent=rate+'%';const pieces=[['Unfulfilled',Math.max(total-(d.fulfilled_orders||0),0),'var(--yellow)'],['Queued',d.queue||0,'var(--blue)'],['Purchased',d.purchased||0,'var(--green)'],['Delivered',d.delivered_orders||0,'var(--purple)'],['Failed',d.failed||0,'var(--red)']];const sum=pieces.reduce((a,p)=>a+p[1],0)||1;$('progress').innerHTML=pieces.map(p=>`<span class="seg" style="width:${p[1]/sum*100}%;background:${p[2]}"></span>`).join('');$('legend').innerHTML=pieces.map(p=>`<div><span style="color:${p[2]}">●</span> ${p[0]}<b>${p[1]}</b></div>`).join('');renderOrders(d.recent_orders||[]);$('topProducts').innerHTML=(d.top_products||[]).map(p=>`<div class="product"><img src="${esc(p.image_url||'')}" alt=""><p>${esc(p.title)}<br><small>${money(p.revenue,c)}</small></p><b>${p.units}</b></div>`).join('')||'<div class="empty">Product rankings appear after orders sync.</div>';$('storeStatus').innerHTML=`<div class="summary-row"><span>Store</span><b>${esc(d.store_domain||'—')}</b></div><div class="summary-row"><span>API</span><b>${d.shopify_configured?'Admin GraphQL':'Configuration required'}</b></div><div class="summary-row"><span>Last sync</span><b>${d.last_sync?.status||'Never'}</b></div>`}
+
+function renderMobileOrders(rows){
+  const host=$('mobileOrders');
+  if(!host)return;
+  const top=(rows||[]).slice(0,3);
+  if(!top.length){
+    host.innerHTML='<div class="mobile-empty">Orders will appear after Shopify sync.</div>';
+    return;
+  }
+  host.innerHTML=top.map(o=>{
+    const fulfillment=String(o.fulfillment_status||'Unfulfilled');
+    const warning=!/fulfilled|delivered/i.test(fulfillment);
+    return `<div class="mobile-order" data-mobile-order="${o.id}" role="button" tabindex="0">
+      <div class="mobile-order-main">
+        <b>#${esc(o.shopify_order_number||o.id)} · ${esc(o.customer_name||'Customer')}</b>
+        <small>${dateText(o.created_at)} · ${o.item_count||0} item${(o.item_count||0)===1?'':'s'}</small>
+      </div>
+      <div class="mobile-order-side">
+        <strong>${money(o.current_total_price||o.total_price,o.currency)}</strong>
+        <span class="${warning?'warning':''}">${esc(fulfillment)}</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('[data-mobile-order]').forEach(row=>{
+    row.onclick=()=>openOrder(row.dataset.mobileOrder);
+    row.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')openOrder(row.dataset.mobileOrder)};
+  });
+}
+
+function renderOrders(rows){$('ordersBody').innerHTML=rows.map(o=>`<tr data-order="${o.id}" tabindex="0"><td>#${esc(o.shopify_order_number||o.id)}</td><td>${dateText(o.created_at)}</td><td>${esc(o.customer_name||'—')}</td><td>${esc(o.source_name||'Shopify')}</td><td>${money(o.current_total_price||o.total_price,o.currency)}</td><td>${badge(o.financial_status)}</td><td>${badge(o.fulfillment_status)}</td><td>${badge(o.delivery_status)}</td><td>${o.item_count||0}</td><td>${esc(o.tracking_number||'—')}</td></tr>`).join('');$('ordersEmpty').hidden=Boolean(rows.length);document.querySelectorAll('[data-order]').forEach(r=>{r.addEventListener('click',()=>openOrder(r.dataset.order));r.addEventListener('keydown',e=>{if(e.key==='Enter')openOrder(r.dataset.order)})})}
+
+function setWorkerCard(cardId,stateId,actionId,status){
+  const card=$(cardId); if(!card)return;
+  const online=Boolean(status?.worker_online);
+  card.classList.toggle('online',online);
+  if($(stateId))$(stateId).textContent=online?'Online':'Offline';
+  if($(actionId))$(actionId).textContent=status?.last_action||(online?'Worker is connected and polling':'No recent heartbeat');
+}
+
+function applyUnifiedWorkerStatus(status){
+  const snapshot=status?.worker&&typeof status.worker==='object'?status.worker:status;
+  const online=Boolean(snapshot?.worker_online??snapshot?.online);
+  const current=snapshot?.current_task;
+  const action=
+    current
+      ? 'Processing order #'
+        +(current.shopify_order_number||current.order_id||current.task_id)
+      : snapshot?.last_action
+        ||(online?'Worker is ready':'No recent heartbeat');
+
+  setWorkerCard(
+    'mobileWorkerCard',
+    'mobileWorkerState',
+    'mobileWorkerAction',
+    {
+      worker_online:online,
+      last_action:action
+    }
+  );
+
+  setWorkerCard(
+    'desktopWorkerCard',
+    'desktopWorkerState',
+    'desktopWorkerAction',
+    {
+      worker_online:online,
+      last_action:action
+    }
+  );
+
+  const systemStatus=document.querySelector(
+    '.sidebar-bottom'
+  );
+
+  if(systemStatus){
+    const text=systemStatus.querySelectorAll(
+      'div,span,p,small'
+    );
+    text.forEach(node=>{
+      if(
+        /automation worker|system status|offline|online/i.test(
+          node.textContent||''
+        )
+      ){
+        if(
+          /automation worker|offline|online/i.test(
+            node.textContent||''
+          )
+        ){
+          node.textContent=
+            online
+              ? (
+                current
+                  ? 'Worker online · processing #'
+                    +(current.shopify_order_number||current.task_id)
+                  : 'Automation worker online'
+              )
+              : 'Automation worker offline';
+        }
+      }
+    });
+  }
+}
+
+async function refreshWorkerStatus(){
+  try{
+    const status=await api('/api/status');
+    applyUnifiedWorkerStatus(status);
+  }catch(error){
+    const fallback=state.data?.worker;
+    if(fallback)applyUnifiedWorkerStatus(fallback);
+    else applyUnifiedWorkerStatus({worker_online:false,last_action:'Unable to read worker status'});
+  }
+}
+function hideNewOrderPopup(){ $('newOrderPopup')?.classList.remove('show'); if(liveState.popupTimer)clearTimeout(liveState.popupTimer); }
+function showNewOrderPopup(order){
+  if(window.FulfillmentNotifications){
+    window.FulfillmentNotifications.notify(order);
+    return;
+  }
+  const number=order.shopify_order_number||order.id;
+  $('newOrderPopupTitle').textContent='#'+number+' · '+(order.customer_name||'Customer');
+  $('newOrderPopupDetails').textContent=(order.item_count||0)+' item'+((order.item_count||0)===1?'':'s')+' · '+money(order.current_total_price||order.total_price,order.currency);
+  $('newOrderPopup')?.classList.add('show');
+  if('Notification' in window&&Notification.permission==='granted'){try{new Notification('New Shopify order #'+number,{body:(order.customer_name||'Customer')+' · '+money(order.current_total_price||order.total_price,order.currency),tag:'fulfillmentpro-order-'+order.id})}catch{}}
+  liveState.popupTimer=setTimeout(hideNewOrderPopup,12000);
+}
+async function requestNotificationPermission(){ if('Notification' in window&&Notification.permission==='default'){try{await Notification.requestPermission()}catch{}} }
+async function registerLiveOrderWebhooks(){
+  if(liveState.webhookRegistrationAttempted)return;
+  liveState.webhookRegistrationAttempted=true;
+  try{await api('/api/shopify/webhooks/register',{method:'POST',body:'{}'});}catch(e){console.warn('Webhook registration failed',e);}
+}
+
+async function runLiveShopifyFallback(){
+  if(liveState.liveSyncing||!token)return;
+  liveState.liveSyncing=true;
+  try{
+    const result=await api('/api/shopify/live-sync',{method:'POST',body:'{}'});
+    const newOrders=result?.new_orders||[];
+    if(newOrders.length){
+      const latest=newOrders[newOrders.length-1];
+      liveState.latestOrderId=Number(latest.id);
+      liveState.initialized=true;
+      showNewOrderPopup(latest);
+      await refresh();
+      await loadOrders();
+    }
+  }catch(error){console.warn('Live Shopify fallback failed:',error);}
+  finally{liveState.liveSyncing=false;}
+}
+
+async function pollLatestOrder(){
+  if(liveState.polling||!token)return;
+  liveState.polling=true;
+  try{
+    const payload=await api('/api/orders/latest');
+    const order=payload?.order;
+    if(!order)return;
+    const id=Number(order.id);
+    if(!liveState.initialized){liveState.latestOrderId=id;liveState.initialized=true;return;}
+    if(id>Number(liveState.latestOrderId||0)){
+      liveState.latestOrderId=id;
+      showNewOrderPopup(order);
+      await refresh();
+      await loadOrders();
+    }
+  }catch(e){console.warn('Latest order polling failed',e);}
+  finally{liveState.polling=false;}
+}
+async function startLiveDashboard(){
+  if(!token||liveState.started)return;
+  liveState.started=true;
+  await registerLiveOrderWebhooks();
+  await refreshWorkerStatus();
+  await pollLatestOrder();
+  setInterval(refreshWorkerStatus,15000);
+  setInterval(pollLatestOrder,5000);
+  setInterval(runLiveShopifyFallback,20000);
+}
+
+async function refresh(){
+  try{
+    render(await api('/api/dashboard'));
+  }catch(e){
+    if(/authentication/i.test(e.message))return;
+    try{
+      const orderData=await api('/api/orders?per_page=100');
+      const rows=orderData.orders||[];
+      const total=Number(orderData.total||rows.length||0);
+      const paid=rows.filter(o=>String(o.financial_status||'').toUpperCase()==='PAID').length;
+      const fulfilled=rows.filter(o=>['FULFILLED','PARTIALLY_FULFILLED'].includes(String(o.fulfillment_status||'').toUpperCase())).length;
+      const delivered=rows.filter(o=>String(o.delivery_status||'').toUpperCase()==='DELIVERED').length;
+      const revenue=rows.reduce((sum,o)=>sum+Number(o.current_total_price||o.total_price||0),0);
+      const refunds=rows.reduce((sum,o)=>sum+Number(o.refunds_total||0),0);
+      render({
+        total_orders:total,
+        paid_orders:paid,
+        fulfilled_orders:fulfilled,
+        delivered_orders:delivered,
+        revenue,
+        refunds,
+        queue:0,
+        needs_mapping:0,
+        verification_required:0,
+        purchased:0,
+        failed:0,
+        processing:0,
+        recent_orders:rows.slice(0,12),
+        top_products:[],
+        worker:{worker_online:false},
+        last_sync:{},
+        store_domain:'br1xzv-gd.myshopify.com',
+        shopify_configured:true
+      });
+      toast('Home metrics loaded from orders');
+    }catch(fallbackError){
+      toast(fallbackError.message||e.message);
+    }
+  }
+}
+
+async function sync(){const b=$('syncBtn');if(!state.data?.shopify_configured){const shop=state.data?.store_domain||'';window.location.href='/shopify/install?shop='+encodeURIComponent(shop);return}b.disabled=true;b.textContent='Syncing…';try{const r=await api('/api/shopify/sync',{method:'POST',body:JSON.stringify({max_pages:25})});toast(`Sync finished: ${r.imported} imported, ${r.updated} updated`);await refresh()}catch(e){toast(e.message)}finally{b.disabled=false;b.textContent=state.data?.shopify_configured?'Sync Shopify':'Connect Shopify'}}async function loadOrders(){try{const s=state.status==='ALL'?'':state.status;const d=await api('/api/orders?per_page=100&search='+encodeURIComponent(state.search)+'&status='+encodeURIComponent(s));renderOrders(d.orders)}catch(e){toast(e.message)}}async function openOrder(id){try{const {order}=await api('/api/orders/'+id);$('detailTitle').textContent='Order #'+(order.shopify_order_number||order.id);$('detailBody').innerHTML=`<div class="detail-grid"><div class="detail-item"><small>Customer</small><div>${esc(order.customer_name||'—')}</div></div><div class="detail-item"><small>Total</small><div>${money(order.current_total_price||order.total_price,order.currency)}</div></div><div class="detail-item"><small>Payment</small><div>${badge(order.financial_status)}</div></div><div class="detail-item"><small>Fulfillment</small><div>${badge(order.fulfillment_status)}</div></div></div><h3>Items</h3>${order.items.map(i=>`<div class="detail-item"><b>${esc(i.title)}</b><br><small>SKU ${esc(i.sku||'—')} · Qty ${i.quantity||1} · ${badge(i.state)}</small></div>`).join('')}`;$('detailModal').classList.add('open')}catch(e){toast(e.message)}}
+
+
+$('newOrderPopupClose')?.addEventListener('click',hideNewOrderPopup);
+$('newOrderPopupDismiss')?.addEventListener('click',hideNewOrderPopup);
+$('newOrderPopupView')?.addEventListener('click',()=>{hideNewOrderPopup();window.location.href='/orders.html';});
+document.addEventListener('click',requestNotificationPermission,{once:true});
+
+const mobileViewAll=$('mobileViewAllOrders');
+if(mobileViewAll)mobileViewAll.onclick=()=>{state.status='ALL';loadOrders();window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})};
+
+$('closeDetail').onclick=()=>$('detailModal').classList.remove('open');$('syncBtn').onclick=sync;
+
+const sidebarSyncShopify=$('sidebarSyncShopify');
+if(sidebarSyncShopify)sidebarSyncShopify.onclick=sync;
+const sidebarViewShopify=$('sidebarViewShopify');
+if(sidebarViewShopify)sidebarViewShopify.onclick=()=>{
+  const domain=state.data?.store_domain||'br1xzv-gd.myshopify.com';
+  window.open('https://admin.shopify.com/store/'+String(domain).replace('.myshopify.com',''),'_blank');
+};
+$('refreshBtn').onclick=refresh;$('search').oninput=e=>{state.search=e.target.value.trim();clearTimeout(state.timer);state.timer=setTimeout(loadOrders,350)};document.querySelectorAll('[data-status]').forEach(b=>b.onclick=()=>{state.status=b.dataset.status||'';document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');loadOrders();closeDrawer()});$('viewShopify').onclick=()=>{if(state.data?.store_domain)window.open('https://admin.shopify.com/store/'+state.data.store_domain.split('.')[0]+'/orders','_blank','noopener')};function openDrawer(){$('sidebar').classList.add('open');$('overlay').classList.add('open')}function closeDrawer(){$('sidebar').classList.remove('open');$('overlay').classList.remove('open')}$('menuBtn').onclick=openDrawer;$('overlay').onclick=closeDrawer;if(state.token)verifyToken().catch(e=>showAuth(e.message));else showAuth();setInterval(()=>{if(state.token)refresh()},15000);
+</script>
+<script src="/js/fulfillment-notifications.js"></script>
+<script>
+(async function removeLegacyDashboardCache() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+
+    if ("caches" in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+    }
+  } catch (error) {
+    console.warn("Legacy cache cleanup could not complete:", error);
+  }
+})();
+</script>
+
+</body></html>
