@@ -343,6 +343,13 @@ def init_db() -> None:
       PRIMARY KEY(category, order_id),
       FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS dashboard_hidden_tasks (
+      category TEXT NOT NULL,
+      task_id INTEGER NOT NULL,
+      cleared_at TEXT NOT NULL,
+      PRIMARY KEY(category, task_id),
+      FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    );
     CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_tasks_state ON tasks(state, created_at);
     CREATE INDEX IF NOT EXISTS idx_line_items_order ON line_items(order_id);
@@ -718,7 +725,13 @@ def worker_snapshot(conn: sqlite3.Connection) -> dict[str, Any]:
         ).fetchone()
 
         if task_row:
-            current_task = dict(task_row)
+            hidden = conn.execute(
+                "SELECT 1 FROM dashboard_hidden_tasks "
+                "WHERE category='processing' AND task_id=?",
+                (current_task_id,),
+            ).fetchone()
+            if not hidden:
+                current_task = dict(task_row)
 
     if current_task is None:
         task_row = conn.execute(
@@ -744,7 +757,13 @@ def worker_snapshot(conn: sqlite3.Connection) -> dict[str, Any]:
         ).fetchone()
 
         if task_row:
-            current_task = dict(task_row)
+            hidden = conn.execute(
+                "SELECT 1 FROM dashboard_hidden_tasks "
+                "WHERE category='processing' AND task_id=?",
+                (task_row["task_id"],),
+            ).fetchone()
+            if not hidden:
+                current_task = dict(task_row)
 
     return {
         **row,
@@ -779,7 +798,27 @@ def dashboard():
     counts = {
         row["state"]: int(row["count"] or 0)
         for row in conn.execute(
-            "SELECT state, COUNT(*) AS count FROM tasks GROUP BY state"
+            """
+            SELECT t.state, COUNT(*) AS count
+            FROM tasks t
+            WHERE NOT (
+              lower(t.state)='queued'
+              AND EXISTS(
+                SELECT 1 FROM dashboard_hidden_orders hidden
+                WHERE hidden.category='queue'
+                  AND hidden.order_id=t.order_id
+              )
+            )
+            AND NOT (
+              lower(t.state)='needs_mapping'
+              AND EXISTS(
+                SELECT 1 FROM dashboard_hidden_orders hidden
+                WHERE hidden.category='mapping'
+                  AND hidden.order_id=t.order_id
+              )
+            )
+            GROUP BY t.state
+            """
         )
     }
 
@@ -896,10 +935,19 @@ def dashboard():
             "status": "unavailable",
         }
 
-    cleared_unfulfilled_orders = int(
+    cleared_counts = {
+        category: int(
+            conn.execute(
+                "SELECT COUNT(*) FROM dashboard_hidden_orders WHERE category=?",
+                (category,),
+            ).fetchone()[0]
+        )
+        for category in ("unfulfilled", "mapping", "queue")
+    }
+    cleared_processing_tasks = int(
         conn.execute(
-            "SELECT COUNT(*) FROM dashboard_hidden_orders "
-            "WHERE category='unfulfilled'"
+            "SELECT COUNT(*) FROM dashboard_hidden_tasks "
+            "WHERE category='processing'"
         ).fetchone()[0]
     )
 
@@ -923,7 +971,10 @@ def dashboard():
             ),
             "recent_orders": recent,
             "top_products": top_products,
-            "cleared_unfulfilled_orders": cleared_unfulfilled_orders,
+            "cleared_unfulfilled_orders": cleared_counts["unfulfilled"],
+            "cleared_mapping_orders": cleared_counts["mapping"],
+            "cleared_queue_orders": cleared_counts["queue"],
+            "cleared_processing_tasks": cleared_processing_tasks,
             "worker": worker,
             "last_sync": last_sync,
             "store_domain": SHOPIFY_STORE_DOMAIN,
@@ -938,7 +989,7 @@ def dashboard():
 
 
 
-DASHBOARD_CLEARABLE_LISTS = {"unfulfilled"}
+DASHBOARD_CLEARABLE_LISTS = {"unfulfilled", "mapping", "queue", "processing"}
 
 
 @app.post("/api/dashboard/lists/<category>/clear")
@@ -950,28 +1001,75 @@ def clear_dashboard_list(category: str):
 
     conn = get_db()
     now = utcnow()
-    if category == "unfulfilled":
-        order_ids = [
-            int(row["id"])
-            for row in conn.execute(
+
+    if category == "processing":
+        worker = worker_snapshot(conn)
+        current = worker.get("current_task") or {}
+        task_id = current.get("task_id")
+        cleared_now = 0
+        if task_id:
+            conn.execute(
                 """
-                SELECT id
-                FROM orders
-                WHERE UPPER(COALESCE(fulfillment_status, '')) NOT IN (
-                  'FULFILLED',
-                  'PARTIALLY_FULFILLED'
-                )
-                AND NOT EXISTS (
-                  SELECT 1
-                  FROM dashboard_hidden_orders hidden
-                  WHERE hidden.category = 'unfulfilled'
-                    AND hidden.order_id = orders.id
-                )
-                """
+                INSERT OR IGNORE INTO dashboard_hidden_tasks(
+                  category, task_id, cleared_at
+                ) VALUES(?,?,?)
+                """,
+                ("processing", int(task_id), now),
             )
-        ]
+            cleared_now = 1
+        conn.commit()
+        hidden_total = int(conn.execute(
+            "SELECT COUNT(*) FROM dashboard_hidden_tasks "
+            "WHERE category='processing'"
+        ).fetchone()[0])
+        conn.close()
+        return jsonify({
+            "ok": True,
+            "category": category,
+            "cleared_now": cleared_now,
+            "hidden_total": hidden_total,
+        })
+
+    if category == "unfulfilled":
+        rows = conn.execute(
+            """
+            SELECT id AS order_id
+            FROM orders
+            WHERE UPPER(COALESCE(fulfillment_status, '')) NOT IN (
+              'FULFILLED',
+              'PARTIALLY_FULFILLED'
+            )
+            """
+        )
+    elif category == "mapping":
+        rows = conn.execute(
+            """
+            SELECT DISTINCT order_id
+            FROM tasks
+            WHERE lower(state)='needs_mapping'
+            """
+        )
     else:
-        order_ids = []
+        rows = conn.execute(
+            """
+            SELECT DISTINCT order_id
+            FROM tasks
+            WHERE lower(state)='queued'
+            """
+        )
+
+    order_ids = []
+    for row in rows:
+        order_id = int(row["order_id"])
+        exists = conn.execute(
+            """
+            SELECT 1 FROM dashboard_hidden_orders
+            WHERE category=? AND order_id=?
+            """,
+            (category, order_id),
+        ).fetchone()
+        if not exists:
+            order_ids.append(order_id)
 
     conn.executemany(
         """
@@ -982,12 +1080,10 @@ def clear_dashboard_list(category: str):
         [(category, order_id, now) for order_id in order_ids],
     )
     conn.commit()
-    hidden_total = int(
-        conn.execute(
-            "SELECT COUNT(*) FROM dashboard_hidden_orders WHERE category=?",
-            (category,),
-        ).fetchone()[0]
-    )
+    hidden_total = int(conn.execute(
+        "SELECT COUNT(*) FROM dashboard_hidden_orders WHERE category=?",
+        (category,),
+    ).fetchone()[0])
     conn.close()
     return jsonify({
         "ok": True,
@@ -1005,12 +1101,13 @@ def restore_dashboard_list(category: str):
         return jsonify({"error": "Unsupported dashboard list"}), 404
 
     conn = get_db()
+    table = "dashboard_hidden_tasks" if category == "processing" else "dashboard_hidden_orders"
     restored = conn.execute(
-        "SELECT COUNT(*) FROM dashboard_hidden_orders WHERE category=?",
+        f"SELECT COUNT(*) FROM {table} WHERE category=?",
         (category,),
     ).fetchone()[0]
     conn.execute(
-        "DELETE FROM dashboard_hidden_orders WHERE category=?",
+        f"DELETE FROM {table} WHERE category=?",
         (category,),
     )
     conn.commit()
@@ -1020,7 +1117,6 @@ def restore_dashboard_list(category: str):
         "category": category,
         "restored": int(restored or 0),
     })
-
 
 @app.post("/api/shopify/sync")
 @require_dashboard_auth
@@ -1460,6 +1556,12 @@ def bot_queue_orders():
             JOIN orders o ON o.id=t.order_id
             LEFT JOIN line_items li ON li.id=t.line_item_id
             WHERE lower(t.state)='queued'
+              AND NOT EXISTS(
+                SELECT 1
+                FROM dashboard_hidden_orders hidden
+                WHERE hidden.category='queue'
+                  AND hidden.order_id=t.order_id
+              )
             ORDER BY t.created_at ASC, t.id ASC
             """
         )
@@ -1577,12 +1679,21 @@ def orders_needing_product_mapping():
             """
         )
     ]
+    hidden_mapping_orders = {
+        int(record["order_id"])
+        for record in conn.execute(
+            "SELECT order_id FROM dashboard_hidden_orders "
+            "WHERE category='mapping'"
+        )
+    }
     conn.close()
 
     grouped = {}
     missing_item_count = 0
 
     for row in rows:
+        if int(row["order_id"]) in hidden_mapping_orders:
+            continue
         normalized_sku = str(row.get("sku") or "").strip().upper()
         if normalized_sku and normalized_sku in catalog_skus:
             continue
