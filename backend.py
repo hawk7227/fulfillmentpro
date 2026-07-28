@@ -336,9 +336,18 @@ def init_db() -> None:
       installed_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS dashboard_hidden_orders (
+      category TEXT NOT NULL,
+      order_id INTEGER NOT NULL,
+      cleared_at TEXT NOT NULL,
+      PRIMARY KEY(category, order_id),
+      FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE
+    );
     CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_tasks_state ON tasks(state, created_at);
     CREATE INDEX IF NOT EXISTS idx_line_items_order ON line_items(order_id);
+    CREATE INDEX IF NOT EXISTS idx_dashboard_hidden_category
+      ON dashboard_hidden_orders(category, order_id);
     INSERT OR IGNORE INTO worker_status(id,is_online) VALUES(1,0);
     """)
     add_missing_columns(conn, "orders", ORDER_COLUMNS)
@@ -795,6 +804,21 @@ def dashboard():
             END
           ), 0) AS fulfilled_orders,
           COALESCE(SUM(
+            CASE
+              WHEN UPPER(COALESCE(fulfillment_status, '')) NOT IN (
+                'FULFILLED',
+                'PARTIALLY_FULFILLED'
+              )
+              AND NOT EXISTS (
+                SELECT 1
+                FROM dashboard_hidden_orders hidden
+                WHERE hidden.category = 'unfulfilled'
+                  AND hidden.order_id = orders.id
+              )
+              THEN 1 ELSE 0
+            END
+          ), 0) AS unfulfilled_orders,
+          COALESCE(SUM(
             CASE WHEN UPPER(COALESCE(delivery_status, '')) = 'DELIVERED'
             THEN 1 ELSE 0 END
           ), 0) AS delivered_orders,
@@ -872,6 +896,13 @@ def dashboard():
             "status": "unavailable",
         }
 
+    cleared_unfulfilled_orders = int(
+        conn.execute(
+            "SELECT COUNT(*) FROM dashboard_hidden_orders "
+            "WHERE category='unfulfilled'"
+        ).fetchone()[0]
+    )
+
     conn.close()
 
     data = dict(row or {})
@@ -892,6 +923,7 @@ def dashboard():
             ),
             "recent_orders": recent,
             "top_products": top_products,
+            "cleared_unfulfilled_orders": cleared_unfulfilled_orders,
             "worker": worker,
             "last_sync": last_sync,
             "store_domain": SHOPIFY_STORE_DOMAIN,
@@ -903,6 +935,91 @@ def dashboard():
     )
 
     return jsonify(data)
+
+
+
+DASHBOARD_CLEARABLE_LISTS = {"unfulfilled"}
+
+
+@app.post("/api/dashboard/lists/<category>/clear")
+@require_dashboard_auth
+def clear_dashboard_list(category: str):
+    category = str(category or "").strip().lower()
+    if category not in DASHBOARD_CLEARABLE_LISTS:
+        return jsonify({"error": "Unsupported dashboard list"}), 404
+
+    conn = get_db()
+    now = utcnow()
+    if category == "unfulfilled":
+        order_ids = [
+            int(row["id"])
+            for row in conn.execute(
+                """
+                SELECT id
+                FROM orders
+                WHERE UPPER(COALESCE(fulfillment_status, '')) NOT IN (
+                  'FULFILLED',
+                  'PARTIALLY_FULFILLED'
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM dashboard_hidden_orders hidden
+                  WHERE hidden.category = 'unfulfilled'
+                    AND hidden.order_id = orders.id
+                )
+                """
+            )
+        ]
+    else:
+        order_ids = []
+
+    conn.executemany(
+        """
+        INSERT OR IGNORE INTO dashboard_hidden_orders(
+          category, order_id, cleared_at
+        ) VALUES(?,?,?)
+        """,
+        [(category, order_id, now) for order_id in order_ids],
+    )
+    conn.commit()
+    hidden_total = int(
+        conn.execute(
+            "SELECT COUNT(*) FROM dashboard_hidden_orders WHERE category=?",
+            (category,),
+        ).fetchone()[0]
+    )
+    conn.close()
+    return jsonify({
+        "ok": True,
+        "category": category,
+        "cleared_now": len(order_ids),
+        "hidden_total": hidden_total,
+    })
+
+
+@app.post("/api/dashboard/lists/<category>/restore")
+@require_dashboard_auth
+def restore_dashboard_list(category: str):
+    category = str(category or "").strip().lower()
+    if category not in DASHBOARD_CLEARABLE_LISTS:
+        return jsonify({"error": "Unsupported dashboard list"}), 404
+
+    conn = get_db()
+    restored = conn.execute(
+        "SELECT COUNT(*) FROM dashboard_hidden_orders WHERE category=?",
+        (category,),
+    ).fetchone()[0]
+    conn.execute(
+        "DELETE FROM dashboard_hidden_orders WHERE category=?",
+        (category,),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({
+        "ok": True,
+        "category": category,
+        "restored": int(restored or 0),
+    })
 
 
 @app.post("/api/shopify/sync")
@@ -926,7 +1043,16 @@ def get_orders():
     if search:
         where.append("(o.shopify_order_number LIKE ? OR o.customer_name LIKE ? OR o.tracking_number LIKE ?)")
         params += [f"%{search}%"] * 3
-    if status:
+    if status == "UNFULFILLED":
+        where.append(
+            "UPPER(COALESCE(o.fulfillment_status, '')) NOT IN "
+            "('FULFILLED','PARTIALLY_FULFILLED')"
+        )
+        where.append(
+            "NOT EXISTS(SELECT 1 FROM dashboard_hidden_orders hidden "
+            "WHERE hidden.category='unfulfilled' AND hidden.order_id=o.id)"
+        )
+    elif status:
         where.append("(o.fulfillment_status=? OR o.financial_status=? OR EXISTS(SELECT 1 FROM tasks tx WHERE tx.order_id=o.id AND upper(tx.state)=?))")
         params += [status, status, status]
     clause = " WHERE " + " AND ".join(where) if where else ""
